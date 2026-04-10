@@ -1045,8 +1045,11 @@ async function kvGet(key) {
     headers:{Authorization:'Bearer '+c.kvToken}
   });
   const d=await r.json();
-  if(!d.result) return null;
-  try{ return JSON.parse(d.result); }catch(e){ return d.result; }
+  if(d.result===null||d.result===undefined) return null;
+  if(typeof d.result==='string'){
+    try{ return JSON.parse(d.result); }catch(e){ return d.result; }
+  }
+  return d.result;
 }
 async function kvSet(key,value) {
   const c=cfg();
@@ -1100,7 +1103,8 @@ async function takeSnapshot() {
 
     // Update index
     const idxKey='snapshot:index'+(pid?':'+pid:'');
-    let index=await kvGet(idxKey)||[];
+    let index=await kvGet(idxKey);
+    if(!Array.isArray(index)) index=[];
     if(!index.includes(today)){ index.unshift(today); index=index.slice(0,90); }
     await kvSet(idxKey, index);
 
@@ -1122,19 +1126,19 @@ async function loadHistory() {
   try {
     const pid=$('sel-pipeline').value;
     const idxKey='snapshot:index'+(pid?':'+pid:'');
-    const index=await kvGet(idxKey)||[];
-    if(index.length===0){
+    const index=await kvGet(idxKey);
+    const indexArr=Array.isArray(index)?index:[];
+    if(indexArr.length===0){
       $('wow-no-data').style.display='block';
       set('wow-dates','No snapshots yet — click Snapshot to begin');
       return;
     }
-    const todayKey=index[0];
-    // Parse date safely by splitting YYYY-MM-DD to avoid timezone issues
+    const todayKey=indexArr[0];
     const [ty,tm,td]=todayKey.split('-').map(Number);
     const todayDate=new Date(ty,tm-1,td);
     const weekAgoDate=new Date(ty,tm-1,td-7);
     const weekAgoStr=weekAgoDate.getFullYear()+'-'+String(weekAgoDate.getMonth()+1).padStart(2,'0')+'-'+String(weekAgoDate.getDate()).padStart(2,'0');
-    const weekAgoKey=index.find(d=>d<=weekAgoStr)||index[index.length-1];
+    const weekAgoKey=indexArr.find(d=>d<=weekAgoStr)||indexArr[indexArr.length-1];
 
     const snapKey=k=>'snapshot:'+k+(pid?':'+pid:'');
     const [todayDeals,weekAgoDeals]=await Promise.all([
