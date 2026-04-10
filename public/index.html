@@ -159,6 +159,10 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7a6 6 0 1 0 1.2-3.6"/><path d="M1 2.5V5h2.5"/></svg>
         Sync now
       </button>
+      <button class="nbtn" id="snapshot-btn" onclick="takeSnapshot()" title="Save today's LoS snapshot for historical tracking">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
+        Snapshot
+      </button>
       <button class="nbtn" onclick="openSettings()">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></svg>
         Settings
@@ -183,6 +187,16 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
     <label class="slbl">HubSpot Portal ID</label>
     <input class="sinput" id="s-portal" type="text" placeholder="e.g. 7088340" />
     <p style="font-size:11px;color:var(--text3);margin-top:5px">Found in HubSpot URL: app.hubspot.com/contacts/<strong>XXXXXXX</strong>/...</p>
+  </div>
+  <hr class="sdiv" />
+  <div class="sg">
+    <label class="slbl">Upstash KV URL</label>
+    <input class="sinput" id="s-kvurl" type="text" placeholder="https://xxxx.upstash.io" />
+  </div>
+  <div class="sg">
+    <label class="slbl">Upstash KV token</label>
+    <input class="sinput" id="s-kvtoken" type="password" placeholder="AXxx..." />
+    <p style="font-size:11px;color:var(--text3);margin-top:5px">From your Upstash dashboard → REST API. Needed for LoS history snapshots.</p>
   </div>
   <hr class="sdiv" />
   <button class="ssave" onclick="saveSettings()">Save and refresh</button>
@@ -312,6 +326,48 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       </div>
     </div>
 
+    <!-- WoW LoS Change -->
+    <div class="section">
+      <div class="sh">
+        <span class="st">Week-over-week LoS change</span>
+        <span class="ss" id="wow-dates">Loading history...</span>
+      </div>
+      <div class="mg mg4" style="margin-bottom:10px">
+        <div class="mc"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">—</div><div class="mcs" id="wow-total-s">—</div></div>
+        <div class="mc"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">—</div><div class="mcs">vs last week</div></div>
+        <div class="mc"><div class="mcl">Deals progressed</div><div class="mcv" id="wow-progressed">—</div><div class="mcs">Stage moved forward</div></div>
+        <div class="mc"><div class="mcl">Deals lost/removed</div><div class="mcv" id="wow-lost">—</div><div class="mcs">Closed lost or removed</div></div>
+      </div>
+      <div class="mg mg2" style="margin-bottom:10px">
+        <div class="card">
+          <div class="ct">WoW LoS change by salesperson</div>
+          <div id="wow-by-rep"></div>
+        </div>
+        <div class="card">
+          <div class="ct">WoW LoS change by deal stage</div>
+          <div id="wow-by-stage"></div>
+        </div>
+      </div>
+      <div class="mg mg2">
+        <div class="card">
+          <div class="ct">WoW LoS change by firm type</div>
+          <div id="wow-by-firmtype"></div>
+        </div>
+        <div class="card">
+          <div class="ct">WoW LoS change by use case</div>
+          <div id="wow-by-usecase"></div>
+        </div>
+      </div>
+      <div id="wow-no-data" style="display:none;padding:24px;text-align:center;font-size:14px;color:var(--text3)">
+        No snapshot history yet. Click "Snapshot now" to take your first snapshot, then snapshots will be taken automatically each night.
+        <br/><br/>
+        <button class="nbtn" style="margin:0 auto" onclick="takeSnapshot()">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
+          Snapshot now
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -363,7 +419,7 @@ let STAGE_PROB_MAP={}; // stageId -> probability (0-100), populated from HubSpot
 const SF=['#AFA9EC','#5DCAA5','#EF9F27','#F0997B','#B4B2A9','#85B7EB'];
 const ST=['#3C3489','#085041','#633806','#712B13','#444441','#0C447C'];
 const AP=[['#CECBF6','#534AB7'],['#9FE1CB','#0F6E56'],['#FAC775','#854F0B'],['#F4C0D1','#72243E'],['#B5D4F4','#0C447C'],['#C0DD97','#27500A']];
-const DEF={qTarget:3000000,aTarget:8000000,losFloor:50,portalId:''};
+const DEF={qTarget:3000000,aTarget:8000000,losFloor:50,portalId:'',kvUrl:'',kvToken:''};
 
 function cfg(){
   try{const s=localStorage.getItem('dc');return s?{...DEF,...JSON.parse(s)}:{...DEF};}
@@ -866,6 +922,8 @@ function openSettings(){
   const c=cfg();
   $('s-qt').value=c.qTarget;$('s-at').value=c.aTarget;$('s-lp').value=c.losFloor;
   $('s-portal').value=c.portalId||PORTAL_ID||'';
+  $('s-kvurl').value=c.kvUrl||'';
+  $('s-kvtoken').value=c.kvToken||'';
   $('overlay').classList.add('open');
   $('panel-settings').classList.add('open');
 }
@@ -876,9 +934,11 @@ function saveSettings(){
     qTarget:parseFloat($('s-qt').value)||DEF.qTarget,
     aTarget:parseFloat($('s-at').value)||DEF.aTarget,
     losFloor:parseFloat($('s-lp').value)||DEF.losFloor,
-    portalId:portalVal
+    portalId:portalVal,
+    kvUrl:$('s-kvurl').value.trim(),
+    kvToken:$('s-kvtoken').value.trim()
   }));
-  closeAll();render();
+  closeAll();render();loadHistory();
 }
 
 function fmtFull(v){
@@ -975,7 +1035,308 @@ function showDeal(id){
   openPane(d.properties.dealname||'Deal',(om[d.properties.hubspot_owner_id]||'—')+' · '+(sm[d.properties.dealstage]||'—'),html);
 }
 
-window.addEventListener('load',loadDashboard);
+window.addEventListener('load', () => { loadDashboard(); loadHistory(); });
+
+// --- Upstash KV helpers (direct browser calls, no backend needed) ---
+async function kvGet(key) {
+  const c=cfg();
+  if(!c.kvUrl||!c.kvToken) return null;
+  const r=await fetch(c.kvUrl+'/get/'+encodeURIComponent(key),{
+    headers:{Authorization:'Bearer '+c.kvToken}
+  });
+  const d=await r.json();
+  if(!d.result) return null;
+  try{ return JSON.parse(d.result); }catch(e){ return d.result; }
+}
+async function kvSet(key,value) {
+  const c=cfg();
+  if(!c.kvUrl||!c.kvToken) throw new Error('KV not configured — add Upstash credentials in Settings');
+  const r=await fetch(c.kvUrl+'/set/'+encodeURIComponent(key),{
+    method:'POST',
+    headers:{Authorization:'Bearer '+c.kvToken,'Content-Type':'application/json'},
+    body:JSON.stringify({value:JSON.stringify(value)})
+  });
+  if(!r.ok) throw new Error('KV write failed: '+r.status);
+  return true;
+}
+
+// Take a snapshot of current open deals and save to KV
+async function takeSnapshot() {
+  const btn=$('snapshot-btn');
+  const origHTML=btn.innerHTML;
+  btn.disabled=true; btn.textContent='Saving...';
+  try {
+    const c=cfg();
+    if(!c.kvUrl||!c.kvToken) {
+      alert('Add your Upstash KV URL and token in Settings first.');
+      btn.innerHTML=origHTML; btn.disabled=false; return;
+    }
+    const pid=$('sel-pipeline').value;
+    const deals=getPipeDeals().filter(d=>isOpen(d));
+    const today=new Date().toISOString().slice(0,10);
+    const snapshot=deals.map(d=>{
+      const amount=parseFloat(d.properties.amount||0);
+      const prob=getDealProb(d,STAGE_PROB_MAP);
+      const sm=getStageMap(), om=getOwnerMap();
+      return {
+        id:d.id,
+        name:d.properties.dealname||'',
+        amount, prob,
+        los:amount*prob/100,
+        pipeline:d.properties.pipeline||'',
+        stage:d.properties.dealstage||'',
+        stageLabel:sm[d.properties.dealstage]||d.properties.dealstage||'',
+        owner:om[d.properties.hubspot_owner_id]||'Unassigned',
+        firmType:d.properties.agent_firm_type||'',
+        useCase:d.properties.agent_use_case||'',
+        closeDate:d.properties.closedate||'',
+        company:d.properties.company||''
+      };
+    });
+
+    // Write snapshot keyed by date
+    const key='snapshot:'+today+(pid?':'+pid:'');
+    await kvSet(key, snapshot);
+
+    // Update index
+    const idxKey='snapshot:index'+(pid?':'+pid:'');
+    let index=await kvGet(idxKey)||[];
+    if(!index.includes(today)){ index.unshift(today); index=index.slice(0,90); }
+    await kvSet(idxKey, index);
+
+    btn.textContent='Saved ✓';
+    setTimeout(()=>{ btn.innerHTML=origHTML; btn.disabled=false; loadHistory(); },2000);
+  } catch(e) {
+    alert('Snapshot failed: '+e.message);
+    btn.innerHTML=origHTML; btn.disabled=false;
+  }
+}
+
+async function loadHistory() {
+  const c=cfg();
+  if(!c.kvUrl||!c.kvToken){
+    $('wow-no-data').style.display='block';
+    set('wow-dates','Add Upstash credentials in Settings to enable history');
+    return;
+  }
+  try {
+    const pid=$('sel-pipeline').value;
+    const idxKey='snapshot:index'+(pid?':'+pid:'');
+    const index=await kvGet(idxKey)||[];
+    if(index.length===0){
+      $('wow-no-data').style.display='block';
+      set('wow-dates','No snapshots yet — click Snapshot to begin');
+      return;
+    }
+    // Get today and closest snapshot ~7 days ago
+    const todayKey=index[0];
+    const todayDate=new Date(todayKey);
+    const weekAgoTarget=new Date(todayDate); weekAgoTarget.setDate(weekAgoTarget.getDate()-7);
+    const weekAgoStr=weekAgoTarget.toISOString().slice(0,10);
+    const weekAgoKey=index.find(d=>d<=weekAgoStr)||index[index.length-1];
+
+    const snapKey=k=>'snapshot:'+k+(pid?':'+pid:'');
+    const [todayDeals, weekAgoDeals]=await Promise.all([
+      kvGet(snapKey(todayKey)),
+      kvGet(snapKey(weekAgoKey))
+    ]);
+
+    if(!todayDeals||todayDeals.length===0){
+      $('wow-no-data').style.display='block';
+      set('wow-dates','Snapshot data empty — take a new snapshot');
+      return;
+    }
+    $('wow-no-data').style.display='none';
+    renderWoW(todayDeals||[], weekAgoDeals||[], todayKey, weekAgoKey);
+  } catch(e) {
+    set('wow-dates','Error loading history: '+e.message);
+    $('wow-no-data').style.display='block';
+  }
+}
+
+function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
+  const todayFmt=new Date(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const waFmt=new Date(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  set('wow-dates', waFmt+' → '+todayFmt);
+
+  const todayLos=today.reduce((s,d)=>s+d.los,0);
+  const waLos=weekAgo.reduce((s,d)=>s+d.los,0);
+  const delta=todayLos-waLos;
+
+  const todayIds=new Set(today.map(d=>d.id));
+  const waIds=new Set(weekAgo.map(d=>d.id));
+  const newDeals=today.filter(d=>!waIds.has(d.id));
+  const removedDeals=weekAgo.filter(d=>!todayIds.has(d.id));
+  const progressed=today.filter(d=>{ const p=weekAgo.find(x=>x.id===d.id); return p&&d.prob>p.prob; });
+
+  const dEl=$('wow-total');
+  dEl.textContent=(delta>=0?'+':'')+fmtFull(delta);
+  dEl.className='mcv '+(delta>=0?'up':'down');
+  set('wow-total-s',fmtFull(waLos)+' → '+fmtFull(todayLos));
+  set('wow-new','+'+newDeals.length);
+  set('wow-progressed',progressed.length);
+  set('wow-lost',removedDeals.length);
+
+  function groupDelta(getDim) {
+    const g={};
+    today.forEach(d=>{ const k=getDim(d)||'Unknown'; if(!g[k])g[k]={t:0,w:0}; g[k].t+=d.los; });
+    weekAgo.forEach(d=>{ const k=getDim(d)||'Unknown'; if(!g[k])g[k]={t:0,w:0}; g[k].w+=d.los; });
+    return Object.entries(g).map(([k,v])=>({key:k,today:v.t,weekAgo:v.w,delta:v.t-v.w}))
+      .sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  }
+
+  renderWoWTable('wow-by-rep',   groupDelta(d=>d.owner));
+  renderWoWTable('wow-by-stage', groupDelta(d=>d.stageLabel));
+  renderWoWTable('wow-by-firmtype', groupDelta(d=>d.firmType||'Not set'));
+  renderWoWTable('wow-by-usecase',  groupDelta(d=>d.useCase||'Not set'));
+}
+
+function renderWoWTable(elId, rows) {
+  if(!rows.length){ $(elId).innerHTML='<div class="dempty">No data</div>'; return; }
+  const maxAbs=Math.max(...rows.map(r=>Math.abs(r.delta)),1);
+  $(elId).innerHTML=`
+    <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 100px 100px 110px;font-size:12px;color:var(--text3);padding:0 0 6px;border-bottom:0.5px solid var(--border);margin-bottom:4px;font-weight:500">
+      <span></span><span style="text-align:right">Last week</span><span style="text-align:right">This week</span><span style="text-align:right">Change</span>
+    </div>`+
+  rows.map(r=>{
+    const pct=Math.round(Math.abs(r.delta)/maxAbs*100);
+    const up=r.delta>=0; const color=up?'#1D9E75':'#E24B4A';
+    return `<div style="display:grid;grid-template-columns:minmax(0,1.5fr) 100px 100px 110px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;align-items:center">
+      <div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:4px">${r.key}</div>
+        <div style="height:4px;background:var(--bg2);border-radius:2px">
+          <div style="width:${pct}%;height:4px;border-radius:2px;background:${color};opacity:0.7"></div>
+        </div>
+      </div>
+      <span style="text-align:right;color:var(--text3)">${fmtFull(r.weekAgo)}</span>
+      <span style="text-align:right;color:var(--text2)">${fmtFull(r.today)}</span>
+      <span style="text-align:right;font-weight:700;color:${color}">${r.delta>=0?'+':''}${fmtFull(r.delta)}</span>
+    </div>`;
+  }).join('');
+}
+
+
+// --- WoW LoS History ---
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    if (!res.ok) throw new Error('History API error');
+    const data = await res.json();
+    if (!data.today || !data.today.deals || data.today.deals.length === 0) {
+      $('wow-no-data').style.display = 'block';
+      set('wow-dates', 'No snapshots yet');
+      return;
+    }
+    $('wow-no-data').style.display = 'none';
+    renderWoW(data);
+  } catch(e) {
+    set('wow-dates', 'Could not load history');
+    $('wow-no-data').style.display = 'block';
+  }
+}
+
+async function takeSnapshot() {
+  const btn = event.target.closest('button');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    const res = await fetch('/api/snapshot');
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = 'Saved!';
+      setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; loadHistory(); }, 2000);
+    } else {
+      btn.textContent = 'Error';
+      setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
+    }
+  } catch(e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
+  }
+}
+
+function renderWoW(data) {
+  const pid = $('sel-pipeline').value;
+  const today = data.today.deals.filter(d => !pid || d.pipeline === pid);
+  const weekAgo = data.weekAgo.deals.filter(d => !pid || d.pipeline === pid);
+
+  const todayDate = new Date(data.today.date).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  const weekAgoDate = new Date(data.weekAgo.date).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  set('wow-dates', weekAgoDate + ' → ' + todayDate);
+
+  const todayLos = today.reduce((s,d) => s + d.los, 0);
+  const weekAgoLos = weekAgo.reduce((s,d) => s + d.los, 0);
+  const totalDelta = todayLos - weekAgoLos;
+
+  // Summary metrics
+  const todayIds = new Set(today.map(d => d.id));
+  const weekAgoIds = new Set(weekAgo.map(d => d.id));
+  const newDeals = today.filter(d => !weekAgoIds.has(d.id));
+  const removedDeals = weekAgo.filter(d => !todayIds.has(d.id));
+  const progressedDeals = today.filter(d => {
+    const prev = weekAgo.find(x => x.id === d.id);
+    return prev && d.prob > prev.prob;
+  });
+
+  const deltaEl = $('wow-total');
+  deltaEl.textContent = (totalDelta >= 0 ? '+' : '') + fmtFull(totalDelta);
+  deltaEl.className = 'mcv ' + (totalDelta >= 0 ? 'up' : 'down');
+  set('wow-total-s', fmtFull(weekAgoLos) + ' → ' + fmtFull(todayLos));
+  set('wow-new', '+' + newDeals.length);
+  set('wow-progressed', progressedDeals.length);
+  set('wow-lost', removedDeals.length);
+
+  // Group by dimension helper
+  function groupDelta(getDim) {
+    const groups = {};
+    today.forEach(d => {
+      const key = getDim(d) || 'Unknown';
+      if (!groups[key]) groups[key] = { today: 0, weekAgo: 0 };
+      groups[key].today += d.los;
+    });
+    weekAgo.forEach(d => {
+      const key = getDim(d) || 'Unknown';
+      if (!groups[key]) groups[key] = { today: 0, weekAgo: 0 };
+      groups[key].weekAgo += d.los;
+    });
+    return Object.entries(groups)
+      .map(([k, v]) => ({ key: k, today: v.today, weekAgo: v.weekAgo, delta: v.today - v.weekAgo }))
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  }
+
+  renderWoWTable('wow-by-rep', groupDelta(d => d.owner));
+  renderWoWTable('wow-by-stage', groupDelta(d => d.stageLabel));
+  renderWoWTable('wow-by-firmtype', groupDelta(d => d.firmType || 'Not set'));
+  renderWoWTable('wow-by-usecase', groupDelta(d => d.useCase || 'Not set'));
+}
+
+function renderWoWTable(elId, rows) {
+  if (!rows.length) { $(elId).innerHTML = '<div class="dempty">No data</div>'; return; }
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.delta)), 1);
+  $(elId).innerHTML = `
+    <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 90px 90px 100px;gap:0;font-size:12px;color:var(--text3);padding:0 0 6px;border-bottom:0.5px solid var(--border);margin-bottom:4px;font-weight:500">
+      <span></span><span style="text-align:right">Last week</span><span style="text-align:right">This week</span><span style="text-align:right">Change</span>
+    </div>` +
+    rows.map(r => {
+      const pct = Math.round(Math.abs(r.delta) / maxAbs * 100);
+      const isUp = r.delta >= 0;
+      const color = isUp ? '#1D9E75' : '#E24B4A';
+      const sign = isUp ? '+' : '';
+      return `<div style="display:grid;grid-template-columns:minmax(0,1.5fr) 90px 90px 100px;gap:0;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px;align-items:center">
+        <div>
+          <div style="font-weight:500;color:var(--text);margin-bottom:3px">${r.key}</div>
+          <div style="height:4px;background:var(--bg2);border-radius:2px;width:100%">
+            <div style="width:${pct}%;height:4px;border-radius:2px;background:${color};opacity:0.6"></div>
+          </div>
+        </div>
+        <span style="text-align:right;color:var(--text3)">${fmtFull(r.weekAgo)}</span>
+        <span style="text-align:right;color:var(--text2)">${fmtFull(r.today)}</span>
+        <span style="text-align:right;font-weight:600;color:${color}">${sign}${fmtFull(r.delta)}</span>
+      </div>`;
+    }).join('');
+}
+
 </script>
 </body>
 </html>
