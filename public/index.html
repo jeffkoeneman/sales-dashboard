@@ -129,6 +129,13 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .dkv { background: var(--bg2); border-radius: var(--radius); padding: 11px 13px; }
 .dkv-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 .dkv-val { font-size: 15px; font-weight: 600; color: var(--text); }
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
+.tab-btn { font-size: 13px; font-weight: 500; color: var(--text3); background: transparent; border: none; padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color .15s, border-color .15s; }
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 </style>
 </head>
 <body>
@@ -158,10 +165,6 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       <button class="nbtn" id="sync-btn" onclick="syncNow()">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7a6 6 0 1 0 1.2-3.6"/><path d="M1 2.5V5h2.5"/></svg>
         Sync now
-      </button>
-      <button class="nbtn" id="snapshot-btn" onclick="takeSnapshot()" title="Save today's LoS snapshot for historical tracking">
-        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
-        Snapshot
       </button>
       <button class="nbtn" onclick="openSettings()">
         <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></svg>
@@ -290,18 +293,49 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       </div>
     </div>
 
-    <!-- LOS -->
+    <!-- LoS + WoW Tabs -->
     <div class="section">
-      <div class="sh"><span class="st">Line of sight (LoS)</span></div>
-      <div class="mg mg4" style="margin-bottom:10px">
-        <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">QTD unweighted pipeline</div><div class="mcv" id="m-uw">—</div><div class="mcs">Open deals</div></div>
-        <div class="mc" onclick="showDetail('los-all')"><div class="mcl">Total LoS (weighted)</div><div class="mcv" id="m-los">—</div><div class="mcs">Value × probability</div></div>
-        <div class="mc" onclick="showDetail('los-hi')"><div class="mcl" id="m-los-lbl">LoS (50%+ prob)</div><div class="mcv" id="m-loshi">—</div><div class="mcs" id="m-loshi-s">—</div></div>
-        <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">Avg deal size</div><div class="mcv" id="m-avg">—</div><div class="mcs">Open pipeline</div></div>
+      <div class="sh"><span class="st">Line of sight (LoS)</span><span class="ss" id="wow-dates"></span></div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('los',this)">LoS</button>
+        <button class="tab-btn" onclick="switchTab('wow',this)">WoW change</button>
       </div>
-      <div class="mg mg2">
-        <div class="card"><div class="ct">LoS by stage</div><div id="los-stages"></div></div>
-        <div class="card"><div class="ct">LoS by salesperson</div><div id="los-reps"></div></div>
+
+      <!-- LoS Tab -->
+      <div class="tab-panel active" id="tab-los">
+        <div class="mg mg4" style="margin-bottom:10px">
+          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">QTD unweighted pipeline</div><div class="mcv" id="m-uw">—</div><div class="mcs">Open deals</div></div>
+          <div class="mc" onclick="showDetail('los-all')"><div class="mcl">Total LoS (weighted)</div><div class="mcv" id="m-los">—</div><div class="mcs">Value × probability</div></div>
+          <div class="mc" onclick="showDetail('los-hi')"><div class="mcl" id="m-los-lbl">LoS (50%+ prob)</div><div class="mcv" id="m-loshi">—</div><div class="mcs" id="m-loshi-s">—</div></div>
+          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">Avg deal size</div><div class="mcv" id="m-avg">—</div><div class="mcs">Open pipeline</div></div>
+        </div>
+        <div class="mg mg2">
+          <div class="card"><div class="ct">LoS by stage</div><div id="los-stages"></div></div>
+          <div class="card"><div class="ct">LoS by salesperson</div><div id="los-reps"></div></div>
+        </div>
+      </div>
+
+      <!-- WoW Tab -->
+      <div class="tab-panel" id="tab-wow">
+        <div id="wow-no-data" style="padding:24px;text-align:center;font-size:14px;color:var(--text3)">
+          Snapshots run automatically each night. Check back tomorrow for WoW comparisons.
+        </div>
+        <div id="wow-content" style="display:none">
+          <div class="mg mg4" style="margin-bottom:10px">
+            <div class="mc"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">—</div><div class="mcs" id="wow-total-s">—</div></div>
+            <div class="mc"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">—</div><div class="mcs">vs last week</div></div>
+            <div class="mc"><div class="mcl">Deals progressed</div><div class="mcv" id="wow-progressed">—</div><div class="mcs">Stage moved forward</div></div>
+            <div class="mc"><div class="mcl">Deals lost/removed</div><div class="mcv" id="wow-lost">—</div><div class="mcs">Closed lost or removed</div></div>
+          </div>
+          <div class="mg mg2" style="margin-bottom:10px">
+            <div class="card"><div class="ct">WoW LoS change by salesperson</div><div id="wow-by-rep"></div></div>
+            <div class="card"><div class="ct">WoW LoS change by deal stage</div><div id="wow-by-stage"></div></div>
+          </div>
+          <div class="mg mg2">
+            <div class="card"><div class="ct">WoW LoS change by firm type</div><div id="wow-by-firmtype"></div></div>
+            <div class="card"><div class="ct">WoW LoS change by use case</div><div id="wow-by-usecase"></div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -326,50 +360,8 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       </div>
     </div>
 
-    <!-- WoW LoS Change -->
-    <div class="section">
-      <div class="sh">
-        <span class="st">Week-over-week LoS change</span>
-        <span class="ss" id="wow-dates">Loading history...</span>
-      </div>
-      <div class="mg mg4" style="margin-bottom:10px">
-        <div class="mc"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">—</div><div class="mcs" id="wow-total-s">—</div></div>
-        <div class="mc"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">—</div><div class="mcs">vs last week</div></div>
-        <div class="mc"><div class="mcl">Deals progressed</div><div class="mcv" id="wow-progressed">—</div><div class="mcs">Stage moved forward</div></div>
-        <div class="mc"><div class="mcl">Deals lost/removed</div><div class="mcv" id="wow-lost">—</div><div class="mcs">Closed lost or removed</div></div>
-      </div>
-      <div class="mg mg2" style="margin-bottom:10px">
-        <div class="card">
-          <div class="ct">WoW LoS change by salesperson</div>
-          <div id="wow-by-rep"></div>
-        </div>
-        <div class="card">
-          <div class="ct">WoW LoS change by deal stage</div>
-          <div id="wow-by-stage"></div>
-        </div>
-      </div>
-      <div class="mg mg2">
-        <div class="card">
-          <div class="ct">WoW LoS change by firm type</div>
-          <div id="wow-by-firmtype"></div>
-        </div>
-        <div class="card">
-          <div class="ct">WoW LoS change by use case</div>
-          <div id="wow-by-usecase"></div>
-        </div>
-      </div>
-      <div id="wow-no-data" style="display:none;padding:24px;text-align:center;font-size:14px;color:var(--text3)">
-        No snapshot history yet. Click "Snapshot now" to take your first snapshot, then snapshots will be taken automatically each night.
-        <br/><br/>
-        <button class="nbtn" style="margin:0 auto" onclick="takeSnapshot()">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
-          Snapshot now
-        </button>
-      </div>
-    </div>
-
-  </div>
-</div>
+  </div><!-- end dashboard -->
+</div><!-- end container -->
 
 <script>
 const $ = id => document.getElementById(id);
@@ -520,6 +512,12 @@ async function loadDashboard(){
   btn.disabled=false;
 }
 
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  $('tab-'+name).classList.add('active');
+}
 function syncNow(){loadDashboard();}
 function onFilterChange(){render();}
 function destroyCharts(){charts.forEach(c=>c.destroy());charts=[];}
@@ -780,6 +778,7 @@ function render(){
   buildPipeChart(sArr);
   $('dashboard').style.display='block';
   $('sync-badge').textContent=plLabel+' · '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  loadHistory();
 }
 
 function buildArrChart(wonQ,wonPQ,qS,qE,pqS,qTarget,qLbl,pqLbl,now){
@@ -1035,7 +1034,7 @@ function showDeal(id){
   openPane(d.properties.dealname||'Deal',(om[d.properties.hubspot_owner_id]||'—')+' · '+(sm[d.properties.dealstage]||'—'),html);
 }
 
-window.addEventListener('load', () => { loadDashboard(); loadHistory(); });
+window.addEventListener('load', loadDashboard);
 
 // --- Upstash KV helpers (direct browser calls, no backend needed) ---
 async function kvGet(key) {
@@ -1152,6 +1151,7 @@ async function loadHistory() {
       return;
     }
     $('wow-no-data').style.display='none';
+    $('wow-content').style.display='block';
     renderWoW(todayDeals||[], weekAgoDeals||[], todayKey, weekAgoKey);
   } catch(e) {
     set('wow-dates','Error loading history: '+e.message);

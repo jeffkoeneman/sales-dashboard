@@ -1,6 +1,12 @@
 {
   "rewrites": [
     { "source": "/api/hubspot", "destination": "/api/hubspot" }
+  ],
+  "crons": [
+    {
+      "path": "/api/snapshot",
+      "schedule": "0 6 * * *"
+    }
   ]
 }
 
