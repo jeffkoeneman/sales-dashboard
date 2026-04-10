@@ -1128,22 +1128,23 @@ async function loadHistory() {
       set('wow-dates','No snapshots yet — click Snapshot to begin');
       return;
     }
-    // Get today and closest snapshot ~7 days ago
     const todayKey=index[0];
-    const todayDate=new Date(todayKey);
-    const weekAgoTarget=new Date(todayDate); weekAgoTarget.setDate(weekAgoTarget.getDate()-7);
-    const weekAgoStr=weekAgoTarget.toISOString().slice(0,10);
+    // Parse date safely by splitting YYYY-MM-DD to avoid timezone issues
+    const [ty,tm,td]=todayKey.split('-').map(Number);
+    const todayDate=new Date(ty,tm-1,td);
+    const weekAgoDate=new Date(ty,tm-1,td-7);
+    const weekAgoStr=weekAgoDate.getFullYear()+'-'+String(weekAgoDate.getMonth()+1).padStart(2,'0')+'-'+String(weekAgoDate.getDate()).padStart(2,'0');
     const weekAgoKey=index.find(d=>d<=weekAgoStr)||index[index.length-1];
 
     const snapKey=k=>'snapshot:'+k+(pid?':'+pid:'');
-    const [todayDeals, weekAgoDeals]=await Promise.all([
+    const [todayDeals,weekAgoDeals]=await Promise.all([
       kvGet(snapKey(todayKey)),
       kvGet(snapKey(weekAgoKey))
     ]);
 
     if(!todayDeals||todayDeals.length===0){
       $('wow-no-data').style.display='block';
-      set('wow-dates','Snapshot data empty — take a new snapshot');
+      set('wow-dates','Snapshot empty — click Snapshot to save today\'s data');
       return;
     }
     $('wow-no-data').style.display='none';
@@ -1155,8 +1156,9 @@ async function loadHistory() {
 }
 
 function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
-  const todayFmt=new Date(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  const waFmt=new Date(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const parseDate=k=>{ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); };
+  const todayFmt=parseDate(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const waFmt=parseDate(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   set('wow-dates', waFmt+' → '+todayFmt);
 
   const todayLos=today.reduce((s,d)=>s+d.los,0);
