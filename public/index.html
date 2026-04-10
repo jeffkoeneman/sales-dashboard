@@ -317,7 +317,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 
       <!-- WoW Tab -->
       <div class="tab-panel" id="tab-wow">
-        <div id="wow-no-data" style="padding:24px;text-align:center;font-size:14px;color:var(--text3)">
+        <div id="wow-no-data" style="display:none;padding:24px;text-align:center;font-size:14px;color:var(--text3)">
           Snapshots run automatically each night. Check back tomorrow for WoW comparisons.
         </div>
         <div id="wow-content" style="display:none">
@@ -345,15 +345,15 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       <div class="mg mg2" style="margin-bottom:10px">
         <div class="card"><div class="ct">Pipeline by stage</div><div id="pipe-funnel"></div></div>
         <div class="card">
-          <div class="ct">Pipeline value by stage</div>
+          <div class="ct" id="pipe-chart-title">Pipeline value by stage</div>
           <div style="position:relative" id="pipe-chart-wrap">
-            <canvas id="pipeChart" role="img" aria-label="Pipeline value by stage">Pipeline chart.</canvas>
+            <canvas id="pipeChart" role="img" aria-label="Pipeline chart">Pipeline chart.</canvas>
           </div>
         </div>
       </div>
       <div class="card">
         <div class="ct">Top 10 open deals by probability</div>
-        <div class="tbl-hdr" style="grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)">
+        <div class="tbl-hdr" id="top-deals-hdr" style="grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)">
           <span>Deal name</span><span>Stage</span><span>Firm type</span><span>Use case</span><span style="text-align:center">Weight</span><span style="text-align:right">Amount</span><span style="text-align:right">Owner</span>
         </div>
         <div id="top-deals"></div>
@@ -751,31 +751,52 @@ function render(){
       <span class="fbt-out">${v.count} · ${fmt(v.val)}</span>
     </div>`).join('');
 
-  // Top 10 open deals
+  // Is TIFIN.AI pipeline selected?
+  const isTifinAI = pl && pl.label.toLowerCase().includes('tifin.ai');
+
+  // Top 10 open deals — columns depend on pipeline
   const top10=open.filter(d=>parseFloat(d.properties.amount||0)>0)
     .sort((a,b)=>getDealProb(b,STAGE_PROB_MAP)-getDealProb(a,STAGE_PROB_MAP)).slice(0,10);
+
+  // Update header columns based on pipeline
+  if(isTifinAI){
+    $('top-deals-hdr').style.gridTemplateColumns='minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)';
+    $('top-deals-hdr').innerHTML='<span>Deal name</span><span>Stage</span><span>Firm type</span><span>Use case</span><span style="text-align:center">Weight</span><span style="text-align:right">Amount</span><span style="text-align:right">Owner</span>';
+  } else {
+    $('top-deals-hdr').style.gridTemplateColumns='minmax(0,2.5fr) minmax(0,1.6fr) 70px minmax(0,1fr) minmax(0,1fr)';
+    $('top-deals-hdr').innerHTML='<span>Deal name</span><span>Stage</span><span style="text-align:center">Weight</span><span style="text-align:right">Amount</span><span style="text-align:right">Owner</span>';
+  }
+
   $('top-deals').innerHTML=top10.map((d,i)=>{
     const stLbl=sm[d.properties.dealstage]||d.properties.dealstage||'—';
     const prob=Math.round(getDealProb(d,STAGE_PROB_MAP));
-    // Weight color — green high, amber mid, gray low
     const pc=prob>=70?'#1D9E75':prob>=50?'#BA7517':'#888780';
-    // Stage pill: fill = weight color, text = white always
-    return `<div class="tbl-row" style="grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
-      <span style="font-weight:600;color:var(--text)">${i+1}. ${d.properties.dealname||'Unnamed'}</span>
-      <span><span class="pill" style="background:${pc};color:#ffffff">${stLbl}</span></span>
-      <span style="color:var(--text2)">${d.properties.agent_firm_type||'—'}</span>
-      <span style="color:var(--text2)">${d.properties.agent_use_case||'—'}</span>
-      <span style="text-align:center;font-weight:600;color:${pc}">${prob}%</span>
-      <span style="text-align:right;font-weight:600;color:var(--text)">${fmt(d.properties.amount)}</span>
-      <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'—').split(' ')[0]}</span>
-    </div>`;
+    if(isTifinAI){
+      return `<div class="tbl-row" style="grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
+        <span style="font-weight:600;color:var(--text)">${i+1}. ${d.properties.dealname||'Unnamed'}</span>
+        <span><span class="pill" style="background:${pc};color:#ffffff">${stLbl}</span></span>
+        <span style="color:var(--text2)">${d.properties.agent_firm_type||'—'}</span>
+        <span style="color:var(--text2)">${d.properties.agent_use_case||'—'}</span>
+        <span style="text-align:center;font-weight:600;color:${pc}">${prob}%</span>
+        <span style="text-align:right;font-weight:600;color:var(--text)">${fmt(d.properties.amount)}</span>
+        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'—').split(' ')[0]}</span>
+      </div>`;
+    } else {
+      return `<div class="tbl-row" style="grid-template-columns:minmax(0,2.5fr) minmax(0,1.6fr) 70px minmax(0,1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
+        <span style="font-weight:600;color:var(--text)">${i+1}. ${d.properties.dealname||'Unnamed'}</span>
+        <span><span class="pill" style="background:${pc};color:#ffffff">${stLbl}</span></span>
+        <span style="text-align:center;font-weight:600;color:${pc}">${prob}%</span>
+        <span style="text-align:right;font-weight:600;color:var(--text)">${fmt(d.properties.amount)}</span>
+        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'—').split(' ')[0]}</span>
+      </div>`;
+    }
   }).join('');
 
   // Charts
   destroyCharts();
   buildArrChart(wonQ,wonPQ,qS,qE,pqS,qTarget,qLbl,pqLbl,now);
   buildWkChart(deals,currentWkCount,now);
-  buildPipeChart(sArr);
+  buildPipeChart(sArr, open, isTifinAI);
   $('dashboard').style.display='block';
   $('sync-badge').textContent=plLabel+' · '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
   loadHistory();
@@ -833,66 +854,54 @@ function buildWkChart(deals,wks,now){
   }));
 }
 
-function buildPipeChart(sArr){
+function buildPipeChart(sArr, openDeals, isTifinAI){
   const old=charts.find(c=>c.canvas&&c.canvas.id==='pipeChart');
   if(old){old.destroy();charts=charts.filter(c=>c!==old);}
 
-  // Match height exactly to the funnel bar list on the left
-  // Each row is 22px bar + 7px margin-bottom = 29px, plus card padding
-  const rowH=29, padding=60;
-  const chartH=Math.max(200, sArr.length*rowH+padding);
-  const pcw=$('pipe-chart-wrap');
-  pcw.style.height=chartH+'px';
+  let labels, values, colors, title, clickHandler;
 
-  // Convert values to millions for display
-  const valuesInM=sArr.map(([,v])=>parseFloat((v.val/1000000).toFixed(4)));
-  const labels=sArr.map(([s])=>s);
-  const colors=sArr.map((_,i)=>SF[i%SF.length]);
+  if(isTifinAI && openDeals){
+    title='LoS by firm type';
+    const groups={};
+    openDeals.forEach(d=>{
+      const ft=d.properties.agent_firm_type||'Not set';
+      if(!groups[ft]) groups[ft]=0;
+      groups[ft]+=parseFloat(d.properties.amount||0)*getDealProb(d,STAGE_PROB_MAP)/100;
+    });
+    const sorted=Object.entries(groups).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    labels=sorted.map(([k])=>k);
+    values=sorted.map(([,v])=>parseFloat((v/1000000).toFixed(4)));
+    colors=sorted.map((_,i)=>SF[i%SF.length]);
+    clickHandler=(_,els)=>{
+      if(!els.length) return;
+      const ft=labels[els[0].index];
+      const list=openDeals.filter(d=>(d.properties.agent_firm_type||'Not set')===ft)
+        .sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
+      const los=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0)*getDealProb(d,STAGE_PROB_MAP)/100,0);
+      openPane(ft, list.length+' deals · '+fmtFull(los)+' LoS', list.length?list.map(dCard).join(''):'<div class="dempty">No deals</div>');
+    };
+  } else {
+    title='Pipeline value by stage';
+    labels=sArr.map(([s])=>s);
+    values=sArr.map(([,v])=>parseFloat((v.val/1000000).toFixed(4)));
+    colors=sArr.map((_,i)=>SF[i%SF.length]);
+    clickHandler=(_,els)=>{if(els.length) showStage(encodeURIComponent(sArr[els[0].index][0]));};
+  }
+
+  set('pipe-chart-title', title);
+  const rowH=29, padding=60;
+  $('pipe-chart-wrap').style.height=Math.max(200, labels.length*rowH+padding)+'px';
 
   charts.push(new Chart($('pipeChart'),{
     type:'bar',
-    data:{
-      labels,
-      datasets:[{
-        label:'Pipeline ($M)',
-        data:valuesInM,
-        backgroundColor:colors,
-        borderRadius:3,
-        borderSkipped:false
-      }]
-    },
+    data:{labels,datasets:[{label:'Value',data:values,backgroundColor:colors,borderRadius:3,borderSkipped:false}]},
     options:{
-      indexAxis:'y',
-      responsive:true,
-      maintainAspectRatio:false,
-      layout:{padding:{right:10}},
-      plugins:{
-        legend:{display:false},
-        datalabels:{display:false},
-        tooltip:{
-          callbacks:{
-            label:ctx=>' '+fmt(sArr[ctx.dataIndex][1].val)
-          }
-        }
-      },
-      onClick:(_,els)=>{if(els.length) showStage(encodeURIComponent(sArr[els[0].index][0]));},
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:10}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+(values[ctx.dataIndex]*1000000).toLocaleString('en-US',{maximumFractionDigits:0})}}},
+      onClick:clickHandler,
       scales:{
-        x:{
-          grid:{color:'rgba(136,135,128,0.12)'},
-          ticks:{
-            font:{size:11},
-            color:'#888780',
-            // Format axis as $XM — never shows 5000K
-            callback: v => {
-              if(v===0) return '$0';
-              return '$'+v.toFixed(1).replace(/\.0$/,'')+'M';
-            }
-          }
-        },
-        y:{
-          grid:{display:false},
-          ticks:{font:{size:11},color:'#888780'}
-        }
+        x:{grid:{color:'rgba(136,135,128,0.12)'},ticks:{font:{size:11},color:'#888780',callback:v=>v===0?'$0':'$'+v.toFixed(1).replace(/\.0$/,'')+'M'}},
+        y:{grid:{display:false},ticks:{font:{size:11},color:'#888780'}}
       }
     }
   }));
