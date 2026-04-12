@@ -1,7 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/api/hubspot", "destination": "/api/hubspot" }
-  ],
   "crons": [
     {
       "path": "/api/snapshot",
