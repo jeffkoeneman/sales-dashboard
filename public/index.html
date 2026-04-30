@@ -360,7 +360,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
             <div class="card"><div class="ct">WoW LoS change by salesperson</div><div id="wow-by-rep"></div></div>
             <div class="card"><div class="ct">WoW LoS change by deal stage</div><div id="wow-by-stage"></div></div>
           </div>
-          <div class="mg mg2">
+          <div class="mg mg2" id="wow-firmtype-row">
             <div class="card"><div class="ct">WoW LoS change by firm type</div><div id="wow-by-firmtype"></div></div>
             <div class="card"><div class="ct">WoW LoS change by use case</div><div id="wow-by-usecase"></div></div>
           </div>
@@ -1318,8 +1318,17 @@ function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
 
   renderWoWTable('wow-by-rep',   groupDelta(d=>d.owner),   today, weekAgo, 'owner');
   renderWoWTable('wow-by-stage', groupDelta(d=>d.stageLabel), today, weekAgo, 'stageLabel');
-  renderWoWTable('wow-by-firmtype', groupDelta(d=>d.firmType||'Not set'), today, weekAgo, 'firmType');
-  renderWoWTable('wow-by-usecase',  groupDelta(d=>d.useCase||'Not set'),  today, weekAgo, 'useCase');
+
+  // Firm type and use case only exist on TIFIN.AI pipeline
+  const pid=($('sel-pipeline')||{value:''}).value;
+  const pl=ALL_PIPES.find(p=>p.id===pid);
+  const isTifinAI=pl&&pl.label.toLowerCase().includes('tifin.ai');
+  const ftRow=$('wow-firmtype-row');
+  if(ftRow) ftRow.style.display=isTifinAI?'':'none';
+  if(isTifinAI){
+    renderWoWTable('wow-by-firmtype', groupDelta(d=>d.firmType||'Not set'), today, weekAgo, 'firmType');
+    renderWoWTable('wow-by-usecase',  groupDelta(d=>d.useCase||'Not set'),  today, weekAgo, 'useCase');
+  }
 }
 
 // Cached WoW deal data for detail panel clicks
