@@ -345,7 +345,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
             <button class="wow-apply-btn" onclick="applyWoWDates()">Apply</button>
             <span id="wow-snap-count" style="font-size:12px;color:var(--text3)"></span>
             <div class="wow-checkbox-wrap">
-              <input type="checkbox" id="wow-exclude-low" onchange="applyWoWDates()" />
+              <input type="checkbox" id="wow-exclude-low" />
               <label for="wow-exclude-low">Exclude low probability deals (&lt;15%)</label>
             </div>
           </div>
@@ -1396,3 +1396,7 @@ function showWoWDetail(key, dimKey) {
 }
 
 
+
+</script>
+</body>
+</html>
