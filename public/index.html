@@ -47,9 +47,9 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .smsg-ok { background: var(--teal-light); color: var(--teal-dark); }
 .smsg-err { background: var(--red-light); color: var(--red-dark); }
 #dashboard { display: none; padding-top: 22px; }
-.section { margin-bottom: 28px; }
-.sh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
-.st { font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .06em; }
+.section { margin-bottom: 44px; }
+.sh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 0.5px solid var(--border); }
+.st { font-size: 17px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .05em; }
 .ss { font-size: 13px; color: var(--text3); }
 .mg { display: grid; gap: 10px; }
 .mg4 { grid-template-columns: repeat(4,minmax(0,1fr)); }
@@ -148,10 +148,10 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .date-apply-btn { font-size: 12px; font-weight: 500; color: #fff; background: var(--purple); border: none; border-radius: var(--radius); padding: 6px 14px; cursor: pointer; }
 .date-apply-btn:hover { opacity: .9; }
 /* Tabs */
-.tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
-.tab-btn { font-size: 13px; font-weight: 500; color: var(--text3); background: transparent; border: none; padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color .15s, border-color .15s; }
-.tab-btn:hover { color: var(--text2); }
-.tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; background: var(--bg2); border-radius: 10px; padding: 4px; width: fit-content; }
+.tab-btn { font-size: 13px; font-weight: 600; color: var(--text3); background: transparent; border: none; padding: 7px 20px; cursor: pointer; border-radius: 7px; transition: background .15s, color .15s, box-shadow .15s; letter-spacing: .01em; }
+.tab-btn:hover { color: var(--text); background: var(--bg3); }
+.tab-btn.active { color: var(--text); background: var(--bg); box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 </style>
