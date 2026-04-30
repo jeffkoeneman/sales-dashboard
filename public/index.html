@@ -1222,11 +1222,17 @@ async function loadHistory() {
     }
     const fmtLbl=k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
     const fromSel=$('wow-date-from'),toSel=$('wow-date-to');
-    if(fromSel&&toSel&&fromSel.options.length===0){
+    // Always rebuild dropdowns so new snapshots are always reflected
+    if(fromSel&&toSel){
+      const prevFrom=fromSel.value, prevTo=toSel.value;
+      fromSel.innerHTML=''; toSel.innerHTML='';
       indexArr.forEach(k=>{
         const o1=document.createElement('option');o1.value=k;o1.textContent=fmtLbl(k);fromSel.appendChild(o1);
         const o2=document.createElement('option');o2.value=k;o2.textContent=fmtLbl(k);toSel.appendChild(o2);
       });
+      // Restore previous selection if still valid, otherwise default will be set below
+      if(prevFrom&&indexArr.includes(prevFrom)) fromSel.value=prevFrom;
+      if(prevTo&&indexArr.includes(prevTo)) toSel.value=prevTo;
     }
     const todayKey=indexArr[0];
     const[ty,tm,td]=todayKey.split('-').map(Number);
