@@ -129,6 +129,14 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .dkv { background: var(--bg2); border-radius: var(--radius); padding: 11px 13px; }
 .dkv-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 .dkv-val { font-size: 15px; font-weight: 600; color: var(--text); }
+/* Date pickers */
+.date-picker-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.date-picker-wrap { display: flex; align-items: center; gap: 6px; }
+.date-picker-lbl { font-size: 12px; color: var(--text3); white-space: nowrap; }
+.date-picker { font-size: 13px; font-weight: 500; color: var(--text); background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; outline: none; }
+.date-picker:focus { border-color: var(--purple); }
+.date-apply-btn { font-size: 12px; font-weight: 500; color: #fff; background: var(--purple); border: none; border-radius: var(--radius); padding: 5px 14px; cursor: pointer; }
+.date-apply-btn:hover { opacity: .9; }
 /* Tabs */
 .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
 .tab-btn { font-size: 13px; font-weight: 500; color: var(--text3); background: transparent; border: none; padding: 8px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; transition: color .15s, border-color .15s; }
@@ -321,6 +329,18 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
           Snapshots run automatically each night. Check back tomorrow for WoW comparisons.
         </div>
         <div id="wow-content" style="display:none">
+          <div class="date-picker-row">
+            <div class="date-picker-wrap">
+              <span class="date-picker-lbl">From</span>
+              <input type="date" class="date-picker" id="wow-date-from" />
+            </div>
+            <div class="date-picker-wrap">
+              <span class="date-picker-lbl">To</span>
+              <input type="date" class="date-picker" id="wow-date-to" />
+            </div>
+            <button class="date-apply-btn" onclick="applyWoWDates()">Apply</button>
+            <span id="wow-available-dates" style="font-size:12px;color:var(--text3)"></span>
+          </div>
           <div class="mg mg4" style="margin-bottom:10px">
             <div class="mc"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">—</div><div class="mcs" id="wow-total-s">—</div></div>
             <div class="mc"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">—</div><div class="mcs">vs last week</div></div>
@@ -1179,6 +1199,12 @@ function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
   const todayFmt=parseDate(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const waFmt=parseDate(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   set('wow-dates', waFmt+' → '+todayFmt);
+  // Set date pickers to reflect current comparison
+  const toEl=$('wow-date-to'); const fromEl=$('wow-date-from');
+  if(toEl&&!toEl.dataset.userSet) toEl.value=todayKey;
+  if(fromEl&&!fromEl.dataset.userSet) fromEl.value=weekAgoKey;
+  toEl.onchange=()=>{toEl.dataset.userSet='1';};
+  fromEl.onchange=()=>{fromEl.dataset.userSet='1';};
 
   const todayLos=today.reduce((s,d)=>s+d.los,0);
   const waLos=weekAgo.reduce((s,d)=>s+d.los,0);
