@@ -259,7 +259,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
     <div class="section">
       <div class="sh"><span class="st">ARR targets</span><span class="ss" id="arr-lbl"></span></div>
       <div class="mg mg2" style="margin-bottom:10px">
-        <div class="card">
+        <div class="card" onclick="showDetail('arr-qtd')" style="cursor:pointer;border:1.5px solid transparent;transition:border-color .15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='transparent'">
           <div class="ct">QTD ARR vs quarterly target</div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
             <span id="qtd-arr" style="font-size:30px;font-weight:600;color:var(--text)">—</span>
@@ -268,7 +268,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
           <div class="pw"><div class="pb" id="qtd-bar" style="width:0%;background:var(--purple)"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span id="qtd-pct">—</span><span id="qtd-rem">—</span></div>
         </div>
-        <div class="card">
+        <div class="card" onclick="showDetail('arr-ann')" style="cursor:pointer;border:1.5px solid transparent;transition:border-color .15s" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='transparent'">
           <div class="ct">Annualized ARR vs annual target</div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
             <span id="ann-arr" style="font-size:30px;font-weight:600;color:var(--text)">—</span>
@@ -594,15 +594,19 @@ function isOpen(d){ return !isWon(d)&&!isLost(d); }
 // HubSpot can store the close date in multiple fields
 function wonDate(d){
   const p=d.properties;
-  // Try each date field in priority order, return first valid one
-  const candidates=[
-    p.hs_closed_won_date,
-    p.hs_date_entered_closedwon,
-    p.closedate
-  ];
-  for(const c of candidates){
-    if(c){const dt=new Date(c);if(!isNaN(dt)&&dt.getFullYear()>2000) return dt;}
-  }
+  // Parse a date string as LOCAL midnight to avoid UTC-offset shifting the date
+  // e.g. "2026-04-29" via new Date() = Apr 28 7pm Mountain — wrong. Parse as local instead.
+  const parseLocal=s=>{
+    if(!s) return null;
+    // ISO with time component — strip to date only and parse as local
+    const ds=s.slice(0,10); // "YYYY-MM-DD"
+    const [y,m,day]=ds.split('-').map(Number);
+    if(!y||!m||!day) return null;
+    const dt=new Date(y,m-1,day);
+    return (isNaN(dt)||dt.getFullYear()<2000)?null:dt;
+  };
+  const candidates=[p.hs_closed_won_date,p.hs_date_entered_closedwon,p.closedate];
+  for(const c of candidates){const dt=parseLocal(c);if(dt) return dt;}
   return new Date(p.createdate||0);
 }
 
@@ -835,22 +839,21 @@ function render(){
 
 function buildArrChart(wonQ,wonPQ,qS,qE,pqS,qTarget,qLbl,pqLbl,now){
   const qDays=Math.round((qE-qS)/86400000),pts=13;
-  // Helper: normalize a Date to midnight local time for date-only comparison
-  const midnight=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x;};
+  // wonDate() now always returns local-midnight dates so no extra normalization needed
   const aLbls=Array.from({length:pts},(_,i)=>{
     const d=new Date(qS);d.setDate(d.getDate()+Math.round(i*qDays/(pts-1)));
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   });
   const currData=aLbls.map((_,i)=>{
     const cut=new Date(qS);cut.setDate(cut.getDate()+Math.round(i*qDays/(pts-1)));
-    cut.setHours(23,59,59,999); // include full day
+    cut.setHours(23,59,59,999); // end of day — include deals closed on this date
     if(cut>now) return null;
-    return wonQ.filter(d=>midnight(wonDate(d))<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    return wonQ.filter(d=>wonDate(d)<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   });
   const prevData=aLbls.map((_,i)=>{
     const cut=new Date(pqS);cut.setDate(cut.getDate()+Math.round(i*qDays/(pts-1)));
     cut.setHours(23,59,59,999);
-    return wonPQ.filter(d=>midnight(wonDate(d))<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    return wonPQ.filter(d=>wonDate(d)<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   });
   set('lgnd-curr',qLbl); set('lgnd-prev',pqLbl);
   charts.push(new Chart($('arrChart'),{
@@ -1037,6 +1040,39 @@ function showDetail(type){
   else if(type==='unweighted'){list=deals.filter(d=>isOpen(d));title='Open pipeline';}
   else if(type==='los-all'){list=deals.filter(d=>isOpen(d));title='LoS — all open deals';}
   else if(type==='los-hi'){list=deals.filter(d=>isOpen(d)&&getDealProb(d,STAGE_PROB_MAP)>=c.losFloor);title='LoS — high probability';}
+  else if(type==='arr-qtd'){
+    list=deals.filter(d=>isWon(d)&&wonDate(d)>=qS&&wonDate(d)<=qE);
+    list.sort((a,b)=>wonDate(b)-wonDate(a));
+    const tot=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    const pct=Math.min(100,Math.round(tot/c.qTarget*100));
+    const dLeft=Math.max(0,Math.round((qE-now)/86400000));
+    const qStr2=$('sel-quarter').value||curQ();
+    const {label:qLbl2}=qBounds(qStr2);
+    title='QTD closed ARR — '+qLbl2;
+    sub=list.length+' deal'+(list.length!==1?'s':'')+' · '+fmtFull(tot)+' of '+fmtFull(c.qTarget)+' target ('+pct+'%)';
+    openPane(title,sub,list.length?list.map(d=>{
+      const om2=getOwnerMap();
+      return '<div class="ditem"><div class="dinfo"><a class="dname" href="'+hsLink(d.id)+'" target="_blank" rel="noopener">'+(d.properties.dealname||'Unnamed')+' ↗</a><div class="dmeta"><span>'+(om2[d.properties.hubspot_owner_id]||'—')+'</span><span>·</span><span>Closed '+fmtD(wonDate(d))+'</span></div></div><div class="dright"><div class="damount" style="color:var(--teal)">'+fmtFull(d.properties.amount)+'</div></div></div>';
+    }).join('')+'<div style="margin-top:16px;padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2)">Target: '+fmtFull(c.qTarget)+' · Closed: '+fmtFull(tot)+' · '+pct+'% attainment · '+(qE>now?fmtFull(c.qTarget-tot)+' remaining, '+dLeft+'d left':qStr2+' complete')+'</div>'
+      :`<div class="dempty">No closed deals in ${qStr2}</div>`);
+    return;
+  }
+  else if(type==='arr-ann'){
+    const yrS2=new Date(now.getFullYear(),0,1);
+    list=deals.filter(d=>isWon(d)&&wonDate(d)>=yrS2&&wonDate(d)<=now);
+    list.sort((a,b)=>wonDate(b)-wonDate(a));
+    const yrTot=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    const ytdDays2=Math.max(1,(now-yrS2)/86400000);
+    const annAmt=Math.round(yrTot*(365/ytdDays2));
+    const pct2=Math.min(100,Math.round(annAmt/c.aTarget*100));
+    title='Annualized ARR — CY'+now.getFullYear();
+    sub=list.length+' deal'+(list.length!==1?'s':'')+' YTD · '+fmtFull(yrTot)+' closed · '+fmtFull(annAmt)+' annualized';
+    openPane(title,sub,list.length?'<div style="padding:12px;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2);margin-bottom:14px">'+fmtFull(yrTot)+' closed in '+Math.round(ytdDays2)+' days × (365 / '+Math.round(ytdDays2)+') = '+fmtFull(annAmt)+' annualized · '+pct2+'% of '+fmtFull(c.aTarget)+' target</div>'+list.map(d=>{
+      const om2=getOwnerMap();
+      return '<div class="ditem"><div class="dinfo"><a class="dname" href="'+hsLink(d.id)+'" target="_blank" rel="noopener">'+(d.properties.dealname||'Unnamed')+' ↗</a><div class="dmeta"><span>'+(om2[d.properties.hubspot_owner_id]||'—')+'</span><span>·</span><span>Closed '+fmtD(wonDate(d))+'</span></div></div><div class="dright"><div class="damount" style="color:var(--teal)">'+fmtFull(d.properties.amount)+'</div></div></div>';
+    }).join(''):`<div class="dempty">No closed deals this year</div>`);
+    return;
+  }
   list.sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
   sub=list.length+' deal'+(list.length!==1?'s':'');
   openPane(title,sub,list.length?list.map(dCard).join(''):`<div class="dempty">No deals found</div>`);
@@ -1361,7 +1397,8 @@ function renderWoWTable(elId, rows, todayDeals, weekAgoDeals, dimKey) {
     const up=r.delta>=0; const color=up?'#1D9E75':'#E24B4A';
     return `<div style="display:grid;grid-template-columns:minmax(0,1.5fr) 100px 100px 110px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;align-items:center;cursor:pointer;border-radius:4px;transition:background .12s" 
       onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''"
-      onclick="showWoWDetail(${JSON.stringify(r.key)},${JSON.stringify(dimKey)})">
+      data-wow-key="${r.key.replace(/"/g,'&quot;')}" data-wow-dim="${dimKey}"
+      onclick="showWoWDetail(this.dataset.wowKey,this.dataset.wowDim)">
       <div>
         <div style="font-weight:600;color:var(--text);margin-bottom:4px">${r.key}</div>
         <div style="height:4px;background:var(--bg2);border-radius:2px">
