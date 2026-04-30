@@ -1054,10 +1054,16 @@ async function kvGet(key) {
   });
   const d=await r.json();
   if(d.result===null||d.result===undefined) return null;
-  if(typeof d.result==='string'){
-    try{ return JSON.parse(d.result); }catch(e){ return d.result; }
+  let val=d.result;
+  // Unwrap double-encoding: {value: "..."} wrapper
+  if(typeof val==='string'){
+    try{ val=JSON.parse(val); }catch(e){}
   }
-  return d.result;
+  if(val&&typeof val==='object'&&val.value!==undefined){
+    val=val.value;
+    if(typeof val==='string'){ try{ val=JSON.parse(val); }catch(e){} }
+  }
+  return val;
 }
 async function kvSet(key,value) {
   const c=cfg();
