@@ -677,7 +677,9 @@ function render(){
   const closedARR=wonQ.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   const pqARR=wonPQ.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   const yrARR=wonYr.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
-  const annARR=closedARR*(365/Math.max(1,(now-qS)/86400000));
+  // Annualized = YTD closed ARR scaled to a full year based on days elapsed since Jan 1
+  const ytdDays=Math.max(1,(now-yrS)/86400000);
+  const annARR=yrARR*(365/ytdDays);
   const uw=open.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   const losAll=open.reduce((s,d)=>s+parseFloat(d.properties.amount||0)*getDealProb(d,STAGE_PROB_MAP)/100,0);
   const losHiD=open.filter(d=>getDealProb(d,STAGE_PROB_MAP)>=losFloor);
@@ -833,18 +835,22 @@ function render(){
 
 function buildArrChart(wonQ,wonPQ,qS,qE,pqS,qTarget,qLbl,pqLbl,now){
   const qDays=Math.round((qE-qS)/86400000),pts=13;
+  // Helper: normalize a Date to midnight local time for date-only comparison
+  const midnight=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x;};
   const aLbls=Array.from({length:pts},(_,i)=>{
     const d=new Date(qS);d.setDate(d.getDate()+Math.round(i*qDays/(pts-1)));
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   });
   const currData=aLbls.map((_,i)=>{
     const cut=new Date(qS);cut.setDate(cut.getDate()+Math.round(i*qDays/(pts-1)));
+    cut.setHours(23,59,59,999); // include full day
     if(cut>now) return null;
-    return wonQ.filter(d=>wonDate(d)<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    return wonQ.filter(d=>midnight(wonDate(d))<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   });
   const prevData=aLbls.map((_,i)=>{
     const cut=new Date(pqS);cut.setDate(cut.getDate()+Math.round(i*qDays/(pts-1)));
-    return wonPQ.filter(d=>wonDate(d)<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
+    cut.setHours(23,59,59,999);
+    return wonPQ.filter(d=>midnight(wonDate(d))<=cut).reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
   });
   set('lgnd-curr',qLbl); set('lgnd-prev',pqLbl);
   charts.push(new Chart($('arrChart'),{
