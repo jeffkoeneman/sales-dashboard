@@ -130,12 +130,12 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .dkv-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 .dkv-val { font-size: 15px; font-weight: 600; color: var(--text); }
 /* Date pickers */
-.date-picker-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.date-picker-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
 .date-picker-wrap { display: flex; align-items: center; gap: 6px; }
 .date-picker-lbl { font-size: 12px; color: var(--text3); white-space: nowrap; }
-.date-picker { font-size: 13px; font-weight: 500; color: var(--text); background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 5px 10px; cursor: pointer; outline: none; }
-.date-picker:focus { border-color: var(--purple); }
-.date-apply-btn { font-size: 12px; font-weight: 500; color: #fff; background: var(--purple); border: none; border-radius: var(--radius); padding: 5px 14px; cursor: pointer; }
+.date-sel { font-size: 13px; font-weight: 500; color: var(--text); background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 6px 28px 6px 10px; cursor: pointer; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888780' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; min-width: 140px; }
+.date-sel:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(127,119,221,.15); }
+.date-apply-btn { font-size: 12px; font-weight: 500; color: #fff; background: var(--purple); border: none; border-radius: var(--radius); padding: 6px 14px; cursor: pointer; }
 .date-apply-btn:hover { opacity: .9; }
 /* Tabs */
 .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 16px; }
@@ -332,11 +332,11 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
           <div class="date-picker-row">
             <div class="date-picker-wrap">
               <span class="date-picker-lbl">From</span>
-              <input type="date" class="date-picker" id="wow-date-from" />
+              <select class="date-sel" id="wow-date-from"></select>
             </div>
             <div class="date-picker-wrap">
               <span class="date-picker-lbl">To</span>
-              <input type="date" class="date-picker" id="wow-date-to" />
+              <select class="date-sel" id="wow-date-to"></select>
             </div>
             <button class="date-apply-btn" onclick="applyWoWDates()">Apply</button>
             <span id="wow-available-dates" style="font-size:12px;color:var(--text3)"></span>
@@ -1199,12 +1199,7 @@ function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
   const todayFmt=parseDate(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const waFmt=parseDate(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   set('wow-dates', waFmt+' → '+todayFmt);
-  // Set date pickers to reflect current comparison
-  const toEl=$('wow-date-to'); const fromEl=$('wow-date-from');
-  if(toEl&&!toEl.dataset.userSet) toEl.value=todayKey;
-  if(fromEl&&!fromEl.dataset.userSet) fromEl.value=weekAgoKey;
-  toEl.onchange=()=>{toEl.dataset.userSet='1';};
-  fromEl.onchange=()=>{fromEl.dataset.userSet='1';};
+
 
   const todayLos=today.reduce((s,d)=>s+d.los,0);
   const waLos=weekAgo.reduce((s,d)=>s+d.los,0);
