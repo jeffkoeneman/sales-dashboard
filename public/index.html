@@ -1370,11 +1370,9 @@ function renderWoWTable(elId, rows, todayDeals, weekAgoDeals, dimKey) {
 }
 
 function showWoWDetail(key, dimKey) {
-  // Get current WoW data from the last rendered comparison
-  const fromKey=$('wow-date-from').value;
-  const toKey=$('wow-date-to').value;
-  const c=cfg();
-  if(!c.kvUrl||!c.kvToken) return;
+  // Use already-cached data from the last renderWoW call — no extra KV fetch needed
+  const today=_wowToday, weekAgo=_wowWeekAgo;
+  if(!today||!today.length) return;
 
   const getDim = d => {
     if(dimKey==='owner') return d.owner;
@@ -1384,69 +1382,60 @@ function showWoWDetail(key, dimKey) {
     return '';
   };
 
-  Promise.all([kvGet('snapshot:'+toKey), kvGet('snapshot:'+fromKey)]).then(([todaySnap, weekAgoSnap]) => {
-    const pid=$('sel-pipeline').value;
-    const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
-    const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const today=(todaySnap||[]).filter(fp);
-    const weekAgo=(weekAgoSnap||[]).filter(fp);
+  const todayDeals=today.filter(d=>getDim(d)===key);
+  const weekAgoDeals=weekAgo.filter(d=>getDim(d)===key);
 
-    const todayDeals=today.filter(d=>getDim(d)===key);
-    const weekAgoDeals=weekAgo.filter(d=>getDim(d)===key);
-
-    // Build deal list showing what changed
-    const allIds=new Set([...todayDeals.map(d=>d.id), ...weekAgoDeals.map(d=>d.id)]);
-    const items=[];
-    allIds.forEach(id=>{
-      const now=todayDeals.find(d=>d.id===id);
-      const prev=weekAgoDeals.find(d=>d.id===id);
-      const losNow=now?now.los:0;
-      const losPrev=prev?prev.los:0;
-      const delta=losNow-losPrev;
-      items.push({
-        id, name:(now||prev).name,
-        stageNow:now?now.stageLabel:'Removed',
-        stagePrev:prev?prev.stageLabel:'New',
-        probNow:now?now.prob:0,
-        probPrev:prev?prev.prob:0,
-        amountNow:now?now.amount:0,
-        losNow, losPrev, delta,
-        owner:(now||prev).owner,
-        closeDate:(now||prev).closeDate
-      });
+  // Build deal list showing what changed — include all deals in either snapshot for this dimension
+  const allIds=new Set([...todayDeals.map(d=>d.id), ...weekAgoDeals.map(d=>d.id)]);
+  const items=[];
+  allIds.forEach(id=>{
+    const now=todayDeals.find(d=>d.id===id);
+    const prev=weekAgoDeals.find(d=>d.id===id);
+    const losNow=now?now.los:0;
+    const losPrev=prev?prev.los:0;
+    const delta=losNow-losPrev;
+    items.push({
+      id, name:(now||prev).name,
+      stageNow:now?now.stageLabel:'Removed',
+      stagePrev:prev?prev.stageLabel:'New',
+      probNow:now?now.prob:0,
+      probPrev:prev?prev.prob:0,
+      amountNow:now?now.amount:0,
+      losNow, losPrev, delta,
+      owner:(now||prev).owner,
+      closeDate:(now||prev).closeDate
     });
-    items.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  });
+  items.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
 
-    const parseD=k=>{if(!k)return'—';const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
-    const fromFmt=parseD(fromKey), toFmt=parseD(toKey);
+  const parseD=k=>{if(!k)return'—';const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
+  const fromFmt=parseD(_wowWeekAgoKey), toFmt=parseD(_wowTodayKey);
 
-    const html=items.map(item=>{
-      const color=item.delta>=0?'#1D9E75':'#E24B4A';
-      const stageChanged=item.stagePrev!==item.stageNow;
-      const stageInfo=stageChanged
-        ? `<span style="color:#BA7517">${item.stagePrev} → ${item.stageNow}</span>`
-        : `<span>${item.stageNow}</span>`;
-      const hsId=item.id;
-      const portalId=cfg().portalId||PORTAL_ID||'';
-      const hsUrl=portalId?`https://app.hubspot.com/contacts/${portalId}/record/0-3/${hsId}`:`https://app.hubspot.com/contacts/deals/${hsId}`;
-      return `<div class="ditem">
-        <div class="dinfo">
-          <a class="dname" href="${hsUrl}" target="_blank" rel="noopener">${item.name} ↗</a>
-          <div class="dmeta">
-            <span>${item.owner}</span><span>·</span>${stageInfo}
-            ${item.probPrev!==item.probNow?`<span>·</span><span style="color:#888780">${item.probPrev}% → ${item.probNow}%</span>`:''}
-          </div>
+  const portalId=cfg().portalId||PORTAL_ID||'';
+  const html=items.map(item=>{
+    const color=item.delta>=0?'#1D9E75':'#E24B4A';
+    const stageChanged=item.stagePrev!==item.stageNow;
+    const stageInfo=stageChanged
+      ? `<span style="color:#BA7517">${item.stagePrev} → ${item.stageNow}</span>`
+      : `<span>${item.stageNow}</span>`;
+    const hsUrl=portalId?`https://app.hubspot.com/contacts/${portalId}/record/0-3/${item.id}`:`https://app.hubspot.com/contacts/deals/${item.id}`;
+    return `<div class="ditem">
+      <div class="dinfo">
+        <a class="dname" href="${hsUrl}" target="_blank" rel="noopener">${item.name} ↗</a>
+        <div class="dmeta">
+          <span>${item.owner}</span><span>·</span>${stageInfo}
+          ${item.probPrev!==item.probNow?`<span>·</span><span style="color:#888780">${item.probPrev}% → ${item.probNow}%</span>`:''}
         </div>
-        <div class="dright">
-          <div class="damount" style="color:${color}">${item.delta>=0?'+':''}${fmtFull(item.delta)}</div>
-          <div class="ddate">${fmtFull(item.losPrev)} → ${fmtFull(item.losNow)}</div>
-          <div class="ddate">Close: ${item.closeDate?item.closeDate.slice(0,10):'—'}</div>
-        </div>
-      </div>`;
-    }).join('') || '<div class="dempty">No deals found</div>';
+      </div>
+      <div class="dright">
+        <div class="damount" style="color:${color}">${item.delta>=0?'+':''}${fmtFull(item.delta)}</div>
+        <div class="ddate">${fmtFull(item.losPrev)} → ${fmtFull(item.losNow)}</div>
+        <div class="ddate">Close: ${item.closeDate?item.closeDate.slice(0,10):'—'}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="dempty">No deals found</div>';
 
-    openPane(key+' — LoS change', fromFmt+' → '+toFmt+' · '+items.length+' deals', html);
-  }).catch(e=>alert('Error: '+e.message));
+  openPane(key+' — LoS change', fromFmt+' → '+toFmt+' · '+items.length+' deals', html);
 }
 
 
