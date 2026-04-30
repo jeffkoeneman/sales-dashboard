@@ -197,7 +197,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 <div class="panel panel-settings" id="panel-settings">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
     <span style="font-size:16px;font-weight:600;color:var(--text)">Settings</span>
-    <button class="xbtn" onclick="closeAll()">Ãƒâ€”</button>
+    <button class="xbtn" onclick="closeAll()">×</button>
   </div>
   <div class="sg"><label class="slbl">Quarterly ARR target ($)</label><input class="sinput" id="s-qt" type="text" /></div>
   <div class="sg"><label class="slbl">Annual ARR target ($)</label><input class="sinput" id="s-at" type="text" /></div>
@@ -217,7 +217,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
   <div class="sg">
     <label class="slbl">Upstash KV token</label>
     <input class="sinput" id="s-kvtoken" type="password" placeholder="AXxx..." />
-    <p style="font-size:11px;color:var(--text3);margin-top:5px">From your Upstash dashboard Ã¢â€ â€™ REST API. Needed for LoS history snapshots.</p>
+    <p style="font-size:11px;color:var(--text3);margin-top:5px">From your Upstash dashboard → REST API. Needed for LoS history snapshots.</p>
   </div>
   <hr class="sdiv" />
   <button class="ssave" onclick="saveSettings()">Save and refresh</button>
@@ -227,7 +227,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 <div class="panel panel-detail" id="panel-detail">
   <div class="ph">
     <div><div class="pt" id="d-title">Details</div><div class="psub" id="d-sub"></div></div>
-    <button class="xbtn" onclick="closeAll()">Ãƒâ€”</button>
+    <button class="xbtn" onclick="closeAll()">×</button>
   </div>
   <div class="pbody" id="d-body"></div>
 </div>
@@ -241,10 +241,10 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
     <div class="section">
       <div class="sh"><span class="st">Closed deals</span><span class="ss" id="closed-lbl"></span></div>
       <div class="mg mg4" style="margin-bottom:10px">
-        <div class="mc" onclick="showDetail('closed-qtd')"><div class="mcl">Deals closed this quarter</div><div class="mcv" id="cl-qct">Ã¢â‚¬â€</div><div class="mcs" id="cl-qarr">Ã¢â‚¬â€</div></div>
-        <div class="mc" onclick="showDetail('closed-yr')"><div class="mcl">Deals closed this year</div><div class="mcv" id="cl-yct">Ã¢â‚¬â€</div><div class="mcs" id="cl-yarr">Ã¢â‚¬â€</div></div>
-        <div class="mc"><div class="mcl">Avg deal size (closed)</div><div class="mcv" id="cl-avg">Ã¢â‚¬â€</div><div class="mcs">This quarter</div></div>
-        <div class="mc"><div class="mcl">QoQ growth</div><div class="mcv" id="cl-qoq">Ã¢â‚¬â€</div><div class="mcs">vs previous quarter</div></div>
+        <div class="mc" onclick="showDetail('closed-qtd')"><div class="mcl">Deals closed this quarter</div><div class="mcv" id="cl-qct">—</div><div class="mcs" id="cl-qarr">—</div></div>
+        <div class="mc" onclick="showDetail('closed-yr')"><div class="mcl">Deals closed this year</div><div class="mcv" id="cl-yct">—</div><div class="mcs" id="cl-yarr">—</div></div>
+        <div class="mc"><div class="mcl">Avg deal size (closed)</div><div class="mcv" id="cl-avg">—</div><div class="mcs">This quarter</div></div>
+        <div class="mc"><div class="mcl">QoQ growth</div><div class="mcv" id="cl-qoq">—</div><div class="mcs">vs previous quarter</div></div>
       </div>
       <div class="card">
         <div class="ct">Closed deals this quarter</div>
@@ -262,27 +262,27 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
         <div class="card">
           <div class="ct">QTD ARR vs quarterly target</div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-            <span id="qtd-arr" style="font-size:30px;font-weight:600;color:var(--text)">Ã¢â‚¬â€</span>
-            <span id="qtd-tgt-lbl" style="font-size:14px;color:var(--text3)">Ã¢â‚¬â€</span>
+            <span id="qtd-arr" style="font-size:30px;font-weight:600;color:var(--text)">—</span>
+            <span id="qtd-tgt-lbl" style="font-size:14px;color:var(--text3)">—</span>
           </div>
           <div class="pw"><div class="pb" id="qtd-bar" style="width:0%;background:var(--purple)"></div></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span id="qtd-pct">Ã¢â‚¬â€</span><span id="qtd-rem">Ã¢â‚¬â€</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span id="qtd-pct">—</span><span id="qtd-rem">—</span></div>
         </div>
         <div class="card">
           <div class="ct">Annualized ARR vs annual target</div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
-            <span id="ann-arr" style="font-size:30px;font-weight:600;color:var(--text)">Ã¢â‚¬â€</span>
-            <span id="ann-tgt-lbl" style="font-size:14px;color:var(--text3)">Ã¢â‚¬â€</span>
+            <span id="ann-arr" style="font-size:30px;font-weight:600;color:var(--text)">—</span>
+            <span id="ann-tgt-lbl" style="font-size:14px;color:var(--text3)">—</span>
           </div>
           <div class="pw"><div class="pb" id="ann-bar" style="width:0%;background:var(--teal)"></div></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span id="ann-pct">Ã¢â‚¬â€</span><span id="ann-gap">Ã¢â‚¬â€</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span id="ann-pct">—</span><span id="ann-gap">—</span></div>
         </div>
       </div>
       <div class="card">
-        <div class="ct">Cumulative closed ARR Ã¢â‚¬â€ selected vs previous quarter</div>
+        <div class="ct">Cumulative closed ARR — selected vs previous quarter</div>
         <div class="lgnd">
-          <div class="lgnd-item"><div class="lgnd-sw" style="background:#7F77DD"></div><span id="lgnd-curr">Ã¢â‚¬â€</span></div>
-          <div class="lgnd-item"><div class="lgnd-sw" style="background:#B4B2A9;border:1px dashed #888780"></div><span id="lgnd-prev">Ã¢â‚¬â€</span></div>
+          <div class="lgnd-item"><div class="lgnd-sw" style="background:#7F77DD"></div><span id="lgnd-curr">—</span></div>
+          <div class="lgnd-item"><div class="lgnd-sw" style="background:#B4B2A9;border:1px dashed #888780"></div><span id="lgnd-prev">—</span></div>
           <div class="lgnd-item"><div class="lgnd-sw" style="background:rgba(136,135,128,0.3)"></div>Target pace</div>
         </div>
         <div style="position:relative;height:190px"><canvas id="arrChart" role="img" aria-label="Cumulative ARR chart">ARR chart.</canvas></div>
@@ -293,14 +293,14 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
     <div class="section">
       <div class="sh"><span class="st">Weekly outcomes</span></div>
       <div class="mg mg4" style="margin-bottom:10px">
-        <div class="mc" onclick="showDetail('new-week')"><div class="mcl">New deals this week</div><div class="mcv" id="m-wk">Ã¢â‚¬â€</div><div class="mcs" id="m-wk-s">Ã¢â‚¬â€</div></div>
-        <div class="mc" onclick="showDetail('new-qtd')"><div class="mcl">QTD new deals</div><div class="mcv" id="m-qnew">Ã¢â‚¬â€</div><div class="mcs" id="m-qnew-s">Ã¢â‚¬â€</div></div>
-        <div class="mc" onclick="showDetail('closed-qtd')"><div class="mcl">Deals closed this quarter</div><div class="mcv" id="m-qclosed">Ã¢â‚¬â€</div><div class="mcs" id="m-qclosed-s">Ã¢â‚¬â€</div></div>
-        <div class="mc" onclick="showDetail('all')"><div class="mcl">Total firmwide deals</div><div class="mcv" id="m-total">Ã¢â‚¬â€</div><div class="mcs">All-time</div></div>
+        <div class="mc" onclick="showDetail('new-week')"><div class="mcl">New deals this week</div><div class="mcv" id="m-wk">—</div><div class="mcs" id="m-wk-s">—</div></div>
+        <div class="mc" onclick="showDetail('new-qtd')"><div class="mcl">QTD new deals</div><div class="mcv" id="m-qnew">—</div><div class="mcs" id="m-qnew-s">—</div></div>
+        <div class="mc" onclick="showDetail('closed-qtd')"><div class="mcl">Deals closed this quarter</div><div class="mcv" id="m-qclosed">—</div><div class="mcs" id="m-qclosed-s">—</div></div>
+        <div class="mc" onclick="showDetail('all')"><div class="mcl">Total firmwide deals</div><div class="mcv" id="m-total">—</div><div class="mcs">All-time</div></div>
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div class="ct" style="margin-bottom:0">New deals Ã¢â‚¬â€ weekly</div>
+          <div class="ct" style="margin-bottom:0">New deals — weekly</div>
           <div class="period-pills">
             <button class="ppill" onclick="setWkPeriod(4,this)">1 month</button>
             <button class="ppill active" onclick="setWkPeriod(13,this)">3 months</button>
@@ -322,10 +322,10 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
       <!-- LoS Tab -->
       <div class="tab-panel active" id="tab-los">
         <div class="mg mg4" style="margin-bottom:10px">
-          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">QTD unweighted pipeline</div><div class="mcv" id="m-uw">Ã¢â‚¬â€</div><div class="mcs">Open deals</div></div>
-          <div class="mc" onclick="showDetail('los-all')"><div class="mcl">Total LoS (weighted)</div><div class="mcv" id="m-los">Ã¢â‚¬â€</div><div class="mcs">Value Ãƒâ€” probability</div></div>
-          <div class="mc" onclick="showDetail('los-hi')"><div class="mcl" id="m-los-lbl">LoS (50%+ prob)</div><div class="mcv" id="m-loshi">Ã¢â‚¬â€</div><div class="mcs" id="m-loshi-s">Ã¢â‚¬â€</div></div>
-          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">Avg deal size</div><div class="mcv" id="m-avg">Ã¢â‚¬â€</div><div class="mcs">Open pipeline</div></div>
+          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">QTD unweighted pipeline</div><div class="mcv" id="m-uw">—</div><div class="mcs">Open deals</div></div>
+          <div class="mc" onclick="showDetail('los-all')"><div class="mcl">Total LoS (weighted)</div><div class="mcv" id="m-los">—</div><div class="mcs">Value × probability</div></div>
+          <div class="mc" onclick="showDetail('los-hi')"><div class="mcl" id="m-los-lbl">LoS (50%+ prob)</div><div class="mcv" id="m-loshi">—</div><div class="mcs" id="m-loshi-s">—</div></div>
+          <div class="mc" onclick="showDetail('unweighted')"><div class="mcl">Avg deal size</div><div class="mcv" id="m-avg">—</div><div class="mcs">Open pipeline</div></div>
         </div>
         <div class="mg mg2">
           <div class="card"><div class="ct">LoS by stage</div><div id="los-stages"></div></div>
@@ -345,27 +345,16 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
             <button class="wow-apply-btn" onclick="applyWoWDates()">Apply</button>
             <span id="wow-snap-count" style="font-size:12px;color:var(--text3)"></span>
             <div class="wow-checkbox-wrap">
-              <input type="checkbox" id="wow-exclude-low" />
+              <input type="checkbox" id="wow-exclude-low" onchange="applyWoWDates()" />
               <label for="wow-exclude-low">Exclude low probability deals (&lt;15%)</label>
             </div>
           </div>
-          <div class="date-picker-row">
-            <div class="date-picker-wrap">
-              <span class="date-picker-lbl">From</span>
-              <select class="date-sel" id="wow-date-from"></select>
-            </div>
-            <div class="date-picker-wrap">
-              <span class="date-picker-lbl">To</span>
-              <select class="date-sel" id="wow-date-to"></select>
-            </div>
-            <button class="date-apply-btn" onclick="applyWoWDates()">Apply</button>
-            <span id="wow-available-dates" style="font-size:12px;color:var(--text3)"></span>
-          </div>
+
           <div class="mg mg4" style="margin-bottom:10px">
-            <div class="mc"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">Ã¢â‚¬â€</div><div class="mcs" id="wow-total-s">Ã¢â‚¬â€</div></div>
-            <div class="mc"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">Ã¢â‚¬â€</div><div class="mcs">vs last week</div></div>
-            <div class="mc"><div class="mcl">Deals progressed</div><div class="mcv" id="wow-progressed">Ã¢â‚¬â€</div><div class="mcs">Stage moved forward</div></div>
-            <div class="mc"><div class="mcl">Deals lost/removed</div><div class="mcv" id="wow-lost">Ã¢â‚¬â€</div><div class="mcs">Closed lost or removed</div></div>
+            <div class="mc" onclick="showWoWSummaryDetail('all-changes')"><div class="mcl">Total LoS change (WoW)</div><div class="mcv" id="wow-total">—</div><div class="mcs" id="wow-total-s">—</div></div>
+            <div class="mc" onclick="showWoWSummaryDetail('new-deals')"><div class="mcl">New deals added</div><div class="mcv" id="wow-new">—</div><div class="mcs">vs last week</div></div>
+            <div class="mc" onclick="showWoWSummaryDetail('progressed')"><div class="mcl">Deals progressed</div><div class="mcv" id="wow-progressed">—</div><div class="mcs">Stage moved forward</div></div>
+            <div class="mc" onclick="showWoWSummaryDetail('lost')"><div class="mcl">Deals lost/removed</div><div class="mcv" id="wow-lost">—</div><div class="mcs">Closed lost or removed</div></div>
           </div>
           <div class="mg mg2" style="margin-bottom:10px">
             <div class="card"><div class="ct">WoW LoS change by salesperson</div><div id="wow-by-rep"></div></div>
@@ -407,16 +396,16 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 const $ = id => document.getElementById(id);
 const set = (id,v) => { const e=$(id); if(e) e.textContent=v; };
 
-// Smart currency formatter Ã¢â‚¬â€ M for >=100K, K for <100K
+// Smart currency formatter — M for >=100K, K for <100K
 const fmt = v => {
-  if(v===null||v===undefined||isNaN(Number(v))) return 'Ã¢â‚¬â€';
+  if(v===null||v===undefined||isNaN(Number(v))) return '—';
   v=Number(v);
   if(v===0) return '$0';
   if(Math.abs(v)>=100000) return '$'+(v/1000000).toFixed(2).replace(/\.?0+$/,'')+'M';
   if(Math.abs(v)>=1000) return '$'+Math.round(v/1000)+'K';
   return '$'+Math.round(v);
 };
-// Axis formatter Ã¢â‚¬â€ always M for chart axes (avoids 5000K)
+// Axis formatter — always M for chart axes (avoids 5000K)
 const fmtAxis = v => {
   if(v===0) return '$0';
   if(Math.abs(v)>=1000) return '$'+(v/1000).toFixed(1).replace(/\.0$/,'')+'M';
@@ -424,8 +413,8 @@ const fmtAxis = v => {
 };
 
 const fmtD = s => {
-  if(!s) return 'Ã¢â‚¬â€';
-  const d=new Date(s); if(isNaN(d)) return 'Ã¢â‚¬â€';
+  if(!s) return '—';
+  const d=new Date(s); if(isNaN(d)) return '—';
   return (d.getMonth()+1)+'/'+(d.getDate())+'/'+String(d.getFullYear()).slice(2);
 };
 const inits = n => (n||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
@@ -501,7 +490,7 @@ async function loadDashboard(){
         const info=await proxy('/account-info/v3/details');
         if(info.portalId) PORTAL_ID=String(info.portalId);
       }catch(e){
-        // Non-fatal Ã¢â‚¬â€ deal links will use fallback
+        // Non-fatal — deal links will use fallback
       }
     }
 
@@ -515,7 +504,7 @@ async function loadDashboard(){
     ALL_PIPES=(pipes.results||[]).filter(p=>isAllowed(p.label));
     ALL_OWNERS=owners.results||[];
 
-    // Build won/lost stage ID sets from pipeline data Ã¢â‚¬â€ no hardcoded strings
+    // Build won/lost stage ID sets from pipeline data — no hardcoded strings
     const {wonIds,lostIds}=buildStageTypeMaps();
     WON_STAGE_IDS=wonIds;
     LOST_STAGE_IDS=lostIds;
@@ -529,7 +518,7 @@ async function loadDashboard(){
     const sel=$('sel-pipeline');
     sel.innerHTML='<option value="">All pipelines</option>';
     ALL_PIPES.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.label;sel.appendChild(o);});
-    // Always default to TIFIN.AI Ã¢â‚¬â€ force it every load unless user has manually changed it this session
+    // Always default to TIFIN.AI — force it every load unless user has manually changed it this session
     if(!sel.dataset.userChanged){
       const pref=ALL_PIPES.find(p=>p.label.toLowerCase().includes('tifin.ai'));
       if(pref) sel.value=pref.id;
@@ -633,7 +622,7 @@ function buildStageProbMap(){
 }
 
 function getDealProb(d, stageProbMap){
-  // Use the stage probability from HubSpot pipeline definition Ã¢â‚¬â€ single source of truth
+  // Use the stage probability from HubSpot pipeline definition — single source of truth
   const prob=stageProbMap[d.properties.dealstage];
   if(prob!==undefined) return prob;
   return 0;
@@ -661,11 +650,11 @@ function render(){
   const deals=getPipeDeals();
 
   set('arr-lbl',qLbl+' vs '+pqLbl);
-  set('closed-lbl',qLbl+' Ã‚Â· CY'+qS.getFullYear());
+  set('closed-lbl',qLbl+' · CY'+qS.getFullYear());
 
   const open=deals.filter(d=>isOpen(d));
 
-  // Use wonDate() for all closed won filtering Ã¢â‚¬â€ this fixes historical quarters
+  // Use wonDate() for all closed won filtering — this fixes historical quarters
   const wonQ=deals.filter(d=>{
     if(!isWon(d)) return false;
     const wd=wonDate(d);
@@ -706,26 +695,26 @@ function render(){
   set('cl-avg',fmtFull(clAvg));
   const qoqEl=$('cl-qoq');
   if(qoq!==null){qoqEl.textContent=(qoq>=0?'+':'')+qoq+'%';qoqEl.className='mcv'+(qoq>=0?' up':' down');}
-  else{qoqEl.textContent='Ã¢â‚¬â€';qoqEl.className='mcv';}
+  else{qoqEl.textContent='—';qoqEl.className='mcv';}
 
   const clSorted=[...wonQ].sort((a,b)=>wonDate(b)-wonDate(a));
   $('closed-list').innerHTML=clSorted.length?clSorted.map(d=>{
-    const company=d.properties.company||'Ã¢â‚¬â€';
+    const company=d.properties.company||'—';
     return `<div class="tbl-row" style="grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
       <span style="font-weight:600;color:var(--text)">${d.properties.dealname||'Unnamed'}</span>
       <span style="color:var(--text2)">${company}</span>
-      <span style="color:var(--text2)">${om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€'}</span>
+      <span style="color:var(--text2)">${om[d.properties.hubspot_owner_id]||'—'}</span>
       <span style="color:var(--text3)">${fmtD(wonDate(d))}</span>
       <span style="text-align:right;font-weight:600;color:var(--teal)">${fmtFull(d.properties.amount)}</span>
     </div>`;
   }).join(''):`<div class="dempty">No closed deals in ${qLbl}</div>`;
 
   // --- ARR targets ---
-  set('qtd-arr',fmt(closedARR)); set('qtd-tgt-lbl','of '+fmt(qTarget)+' Ã‚Â· '+qLbl);
+  set('qtd-arr',fmt(closedARR)); set('qtd-tgt-lbl','of '+fmt(qTarget)+' · '+qLbl);
   $('qtd-bar').style.width=qtdPct+'%';
   set('qtd-pct',qtdPct+'% attainment');
-  set('qtd-rem',qE>now?fmt(qTarget-closedARR)+' remaining Ã‚Â· '+dLeft+'d left':qLbl+' complete');
-  set('ann-arr',fmt(annARR)); set('ann-tgt-lbl','of '+fmt(aTarget)+' Ã‚Â· CY'+now.getFullYear());
+  set('qtd-rem',qE>now?fmt(qTarget-closedARR)+' remaining · '+dLeft+'d left':qLbl+' complete');
+  set('ann-arr',fmt(annARR)); set('ann-tgt-lbl','of '+fmt(aTarget)+' · CY'+now.getFullYear());
   $('ann-bar').style.width=annPct+'%';
   set('ann-pct',annPct+'% attainment'); set('ann-gap','Gap: '+fmt(aTarget-annARR));
 
@@ -752,7 +741,7 @@ function render(){
   const sArr=Object.entries(sg).sort((a,b)=>b[1].val-a[1].val);
   const maxV=sArr[0]?.[1]?.val||1,maxL=sArr.reduce((m,[,v])=>Math.max(m,v.los),1);
 
-  // LoS by stage Ã¢â‚¬â€ label outside bar to avoid overlap
+  // LoS by stage — label outside bar to avoid overlap
   $('los-stages').innerHTML=sArr.map(([st,v],i)=>`
     <div class="fr" onclick="showStage('${encodeURIComponent(st)}')">
       <div class="fl" title="${st}">${st}</div>
@@ -781,20 +770,20 @@ function render(){
       <div style="font-size:14px;font-weight:600;color:var(--text)">${fmt(r.los)}</div>
     </div>`).join('');
 
-  // Pipeline funnel Ã¢â‚¬â€ label outside bar
+  // Pipeline funnel — label outside bar
   $('pipe-funnel').innerHTML=sArr.map(([st,v],i)=>`
     <div class="fr" onclick="showStage('${encodeURIComponent(st)}')">
       <div class="fl" title="${st}">${st}</div>
       <div class="fbw">
         <div class="fb" style="width:${Math.max(2,Math.round(v.val/maxV*100))}%;background:${SF[i%SF.length]}"></div>
       </div>
-      <span class="fbt-out">${v.count} Ã‚Â· ${fmt(v.val)}</span>
+      <span class="fbt-out">${v.count} · ${fmt(v.val)}</span>
     </div>`).join('');
 
   // Is TIFIN.AI pipeline selected?
   const isTifinAI = pl && pl.label.toLowerCase().includes('tifin.ai');
 
-  // Top 10 open deals Ã¢â‚¬â€ columns depend on pipeline
+  // Top 10 open deals — columns depend on pipeline
   const top10=open.filter(d=>parseFloat(d.properties.amount||0)>0)
     .sort((a,b)=>getDealProb(b,STAGE_PROB_MAP)-getDealProb(a,STAGE_PROB_MAP)).slice(0,10);
 
@@ -808,18 +797,18 @@ function render(){
   }
 
   $('top-deals').innerHTML=top10.map((d,i)=>{
-    const stLbl=sm[d.properties.dealstage]||d.properties.dealstage||'Ã¢â‚¬â€';
+    const stLbl=sm[d.properties.dealstage]||d.properties.dealstage||'—';
     const prob=Math.round(getDealProb(d,STAGE_PROB_MAP));
     const pc=prob>=70?'#1D9E75':prob>=50?'#BA7517':'#888780';
     if(isTifinAI){
       return `<div class="tbl-row" style="grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1.1fr) 70px minmax(0,1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
         <span style="font-weight:600;color:var(--text)">${i+1}. ${d.properties.dealname||'Unnamed'}</span>
         <span><span class="pill" style="background:${pc};color:#ffffff">${stLbl}</span></span>
-        <span style="color:var(--text2)">${d.properties.agent_firm_type||'Ã¢â‚¬â€'}</span>
-        <span style="color:var(--text2)">${d.properties.agent_use_case||'Ã¢â‚¬â€'}</span>
+        <span style="color:var(--text2)">${d.properties.agent_firm_type||'—'}</span>
+        <span style="color:var(--text2)">${d.properties.agent_use_case||'—'}</span>
         <span style="text-align:center;font-weight:600;color:${pc}">${prob}%</span>
         <span style="text-align:right;font-weight:600;color:var(--text)">${fmt(d.properties.amount)}</span>
-        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€').split(' ')[0]}</span>
+        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'—').split(' ')[0]}</span>
       </div>`;
     } else {
       return `<div class="tbl-row" style="grid-template-columns:minmax(0,2.5fr) minmax(0,1.6fr) 70px minmax(0,1fr) minmax(0,1fr)" onclick="showDeal('${d.id}')">
@@ -827,7 +816,7 @@ function render(){
         <span><span class="pill" style="background:${pc};color:#ffffff">${stLbl}</span></span>
         <span style="text-align:center;font-weight:600;color:${pc}">${prob}%</span>
         <span style="text-align:right;font-weight:600;color:var(--text)">${fmt(d.properties.amount)}</span>
-        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€').split(' ')[0]}</span>
+        <span style="text-align:right;color:var(--text3)">${(om[d.properties.hubspot_owner_id]||'—').split(' ')[0]}</span>
       </div>`;
     }
   }).join('');
@@ -838,7 +827,7 @@ function render(){
   buildWkChart(deals,currentWkCount,now);
   buildPipeChart(sArr, open, isTifinAI);
   $('dashboard').style.display='block';
-  $('sync-badge').textContent=plLabel+' Ã‚Â· '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  $('sync-badge').textContent=plLabel+' · '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
   loadHistory();
 }
 
@@ -918,7 +907,7 @@ function buildPipeChart(sArr, openDeals, isTifinAI){
       const list=openDeals.filter(d=>(d.properties.agent_firm_type||'Not set')===ft)
         .sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
       const los=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0)*getDealProb(d,STAGE_PROB_MAP)/100,0);
-      openPane(ft, list.length+' deals Ã‚Â· '+fmtFull(los)+' LoS', list.length?list.map(dCard).join(''):'<div class="dempty">No deals</div>');
+      openPane(ft, list.length+' deals · '+fmtFull(los)+' LoS', list.length?list.map(dCard).join(''):'<div class="dempty">No deals</div>');
     };
   } else {
     title='Pipeline value by stage';
@@ -991,26 +980,26 @@ function saveSettings(){
 
 function fmtFull(v){
   // Full dollar amount, comma-separated, no abbreviation
-  if(!v&&v!==0) return 'Ã¢â‚¬â€';
+  if(!v&&v!==0) return '—';
   return '$'+Math.round(Number(v)).toLocaleString('en-US');
 }
 
 function dCard(d){
   const om=getOwnerMap(),sm=getStageMap();
-  const owner=om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€';
-  const stage=sm[d.properties.dealstage]||d.properties.dealstage||'Ã¢â‚¬â€';
+  const owner=om[d.properties.hubspot_owner_id]||'—';
+  const stage=sm[d.properties.dealstage]||d.properties.dealstage||'—';
   const prob=Math.round(getDealProb(d,STAGE_PROB_MAP));
   const amount=parseFloat(d.properties.amount||0);
   const losAmt=amount*prob/100;
-  const ft=d.properties.agent_firm_type||'Ã¢â‚¬â€',uc=d.properties.agent_use_case||'Ã¢â‚¬â€';
+  const ft=d.properties.agent_firm_type||'—',uc=d.properties.agent_use_case||'—';
   return `<div class="ditem">
     <div class="dinfo">
-      <a class="dname" href="${hsLink(d.id)}" target="_blank" rel="noopener">${d.properties.dealname||'Unnamed'} Ã¢â€ â€”</a>
+      <a class="dname" href="${hsLink(d.id)}" target="_blank" rel="noopener">${d.properties.dealname||'Unnamed'} ↗</a>
       <div class="dmeta">
-        <span>${owner}</span><span>Ã‚Â·</span><span>${stage}</span>
-        ${prob?`<span>Ã‚Â·</span><span>${prob}% weight</span>`:''}
-        ${ft!=='Ã¢â‚¬â€'?`<span>Ã‚Â·</span><span>${ft}</span>`:''}
-        ${uc!=='Ã¢â‚¬â€'?`<span>Ã‚Â·</span><span>${uc}</span>`:''}
+        <span>${owner}</span><span>·</span><span>${stage}</span>
+        ${prob?`<span>·</span><span>${prob}% weight</span>`:''}
+        ${ft!=='—'?`<span>·</span><span>${ft}</span>`:''}
+        ${uc!=='—'?`<span>·</span><span>${uc}</span>`:''}
       </div>
     </div>
     <div class="dright">
@@ -1023,8 +1012,8 @@ function dCard(d){
 
 function openWkDetail(idx){
   const b=wkBuckets[idx],dl=wkBucketDeals[idx]||[];
-  const lbl=b.start.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' Ã¢â‚¬â€œ '+b.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  openPane('New deals Ã‚Â· '+lbl,dl.length+' deal'+(dl.length!==1?'s':''),dl.length?dl.map(dCard).join(''):`<div class="dempty">No new deals this week</div>`);
+  const lbl=b.start.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+b.end.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  openPane('New deals · '+lbl,dl.length+' deal'+(dl.length!==1?'s':''),dl.length?dl.map(dCard).join(''):`<div class="dempty">No new deals this week</div>`);
 }
 
 function showDetail(type){
@@ -1040,8 +1029,8 @@ function showDetail(type){
   else if(type==='closed-yr'){list=deals.filter(d=>isWon(d)&&wonDate(d)>=yrS&&wonDate(d)<=now);title='Closed this year';}
   else if(type==='all'){list=deals;title='All deals';}
   else if(type==='unweighted'){list=deals.filter(d=>isOpen(d));title='Open pipeline';}
-  else if(type==='los-all'){list=deals.filter(d=>isOpen(d));title='LoS Ã¢â‚¬â€ all open deals';}
-  else if(type==='los-hi'){list=deals.filter(d=>isOpen(d)&&getDealProb(d,STAGE_PROB_MAP)>=c.losFloor);title='LoS Ã¢â‚¬â€ high probability';}
+  else if(type==='los-all'){list=deals.filter(d=>isOpen(d));title='LoS — all open deals';}
+  else if(type==='los-hi'){list=deals.filter(d=>isOpen(d)&&getDealProb(d,STAGE_PROB_MAP)>=c.losFloor);title='LoS — high probability';}
   list.sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
   sub=list.length+' deal'+(list.length!==1?'s':'');
   openPane(title,sub,list.length?list.map(dCard).join(''):`<div class="dempty">No deals found</div>`);
@@ -1052,7 +1041,7 @@ function showStage(enc){
   const list=getPipeDeals().filter(d=>(sm[d.properties.dealstage]||d.properties.dealstage||'Unknown')===stage&&isOpen(d))
     .sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
   const tot=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0),0);
-  openPane(stage,list.length+' open deals Ã‚Â· '+fmt(tot),list.length?list.map(dCard).join(''):`<div class="dempty">No open deals in this stage</div>`);
+  openPane(stage,list.length+' open deals · '+fmt(tot),list.length?list.map(dCard).join(''):`<div class="dempty">No open deals in this stage</div>`);
 }
 
 function showRepDeals(enc){
@@ -1060,7 +1049,7 @@ function showRepDeals(enc){
   const list=getPipeDeals().filter(d=>(om[d.properties.hubspot_owner_id]||'Unassigned')===name&&isOpen(d))
     .sort((a,b)=>parseFloat(b.properties.amount||0)-parseFloat(a.properties.amount||0));
   const los=list.reduce((s,d)=>s+parseFloat(d.properties.amount||0)*getDealProb(d,STAGE_PROB_MAP)/100,0);
-  openPane(name+' Ã¢â‚¬â€ open deals',list.length+' deals Ã‚Â· '+fmt(los)+' LoS',list.length?list.map(dCard).join(''):`<div class="dempty">No open deals</div>`);
+  openPane(name+' — open deals',list.length+' deals · '+fmt(los)+' LoS',list.length?list.map(dCard).join(''):`<div class="dempty">No open deals</div>`);
 }
 
 function showDeal(id){
@@ -1069,18 +1058,18 @@ function showDeal(id){
   const prob=Math.round(getDealProb(d,STAGE_PROB_MAP));
   const fields=[
     ['Amount',fmt(d.properties.amount)],['Weight',prob+'%'],
-    ['Stage',sm[d.properties.dealstage]||d.properties.dealstage||'Ã¢â‚¬â€'],
-    ['Owner',om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€'],
-    ['Firm type',d.properties.agent_firm_type||'Ã¢â‚¬â€'],
-    ['Use case',d.properties.agent_use_case||'Ã¢â‚¬â€'],
+    ['Stage',sm[d.properties.dealstage]||d.properties.dealstage||'—'],
+    ['Owner',om[d.properties.hubspot_owner_id]||'—'],
+    ['Firm type',d.properties.agent_firm_type||'—'],
+    ['Use case',d.properties.agent_use_case||'—'],
     ['Created',fmtD(d.properties.createdate)],
     ['Forecast close',fmtD(d.properties.closedate)],
     ['Closed date',fmtD(d.properties.hs_closed_won_date)],
-    ['Pipeline',ALL_PIPES.find(p=>p.id===d.properties.pipeline)?.label||'Ã¢â‚¬â€']
+    ['Pipeline',ALL_PIPES.find(p=>p.id===d.properties.pipeline)?.label||'—']
   ];
-  const html=`<div style="margin-bottom:14px"><a href="${hsLink(d.id)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--purple);text-decoration:none;font-weight:500">Open in HubSpot Ã¢â€ â€”</a></div>
+  const html=`<div style="margin-bottom:14px"><a href="${hsLink(d.id)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--purple);text-decoration:none;font-weight:500">Open in HubSpot ↗</a></div>
     <div class="dkv-grid">${fields.map(([k,v])=>`<div class="dkv"><div class="dkv-lbl">${k}</div><div class="dkv-val">${v}</div></div>`).join('')}</div>`;
-  openPane(d.properties.dealname||'Deal',(om[d.properties.hubspot_owner_id]||'Ã¢â‚¬â€')+' Ã‚Â· '+(sm[d.properties.dealstage]||'Ã¢â‚¬â€'),html);
+  openPane(d.properties.dealname||'Deal',(om[d.properties.hubspot_owner_id]||'—')+' · '+(sm[d.properties.dealstage]||'—'),html);
 }
 
 window.addEventListener('load', loadDashboard);
@@ -1107,7 +1096,7 @@ async function kvGet(key) {
 }
 async function kvSet(key,value) {
   const c=cfg();
-  if(!c.kvUrl||!c.kvToken) throw new Error('KV not configured Ã¢â‚¬â€ add Upstash credentials in Settings');
+  if(!c.kvUrl||!c.kvToken) throw new Error('KV not configured — add Upstash credentials in Settings');
   const r=await fetch(c.kvUrl+'/set/'+encodeURIComponent(key),{
     method:'POST',
     headers:{Authorization:'Bearer '+c.kvToken,'Content-Type':'application/json'},
@@ -1162,7 +1151,7 @@ async function takeSnapshot() {
     if(!index.includes(today)){ index.unshift(today); index=index.slice(0,90); }
     await kvSet(idxKey, index);
 
-    btn.textContent='Saved Ã¢Å“â€œ';
+    btn.textContent='Saved ✔';
     setTimeout(()=>{ btn.innerHTML=origHTML; btn.disabled=false; loadHistory(); },2000);
   } catch(e) {
     alert('Snapshot failed: '+e.message);
@@ -1251,10 +1240,12 @@ async function applyWoWDates() {
   }catch(e){alert('Error: '+e.message);}
 }
 function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
+  // Cache for detail panel clicks
+  _wowToday=today; _wowWeekAgo=weekAgo; _wowTodayKey=todayKey; _wowWeekAgoKey=weekAgoKey;
   const parseDate=k=>{ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); };
   const todayFmt=parseDate(todayKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   const waFmt=parseDate(weekAgoKey).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  set('wow-dates', waFmt+' Ã¢â€ â€™ '+todayFmt);
+  set('wow-dates', waFmt+' → '+todayFmt);
 
 
   const todayLos=today.reduce((s,d)=>s+d.los,0);
@@ -1270,7 +1261,7 @@ function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
   const dEl=$('wow-total');
   dEl.textContent=(delta>=0?'+':'')+fmtFull(delta);
   dEl.className='mcv '+(delta>=0?'up':'down');
-  set('wow-total-s',fmtFull(waLos)+' Ã¢â€ â€™ '+fmtFull(todayLos));
+  set('wow-total-s',fmtFull(waLos)+' → '+fmtFull(todayLos));
   set('wow-new','+'+newDeals.length);
   set('wow-progressed',progressed.length);
   set('wow-lost',removedDeals.length);
@@ -1287,6 +1278,69 @@ function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
   renderWoWTable('wow-by-stage', groupDelta(d=>d.stageLabel), today, weekAgo, 'stageLabel');
   renderWoWTable('wow-by-firmtype', groupDelta(d=>d.firmType||'Not set'), today, weekAgo, 'firmType');
   renderWoWTable('wow-by-usecase',  groupDelta(d=>d.useCase||'Not set'),  today, weekAgo, 'useCase');
+}
+
+// Cached WoW deal data for detail panel clicks
+let _wowToday=[], _wowWeekAgo=[], _wowTodayKey='', _wowWeekAgoKey='';
+
+function showWoWSummaryDetail(type) {
+  const today=_wowToday, weekAgo=_wowWeekAgo;
+  if(!today.length) return;
+  const todayIds=new Set(today.map(d=>d.id));
+  const waIds=new Set(weekAgo.map(d=>d.id));
+
+  let list=[], title='', sub='';
+  if(type==='new-deals'){
+    list=today.filter(d=>!waIds.has(d.id));
+    title='New deals added';
+  } else if(type==='progressed'){
+    list=today.filter(d=>{ const p=weekAgo.find(x=>x.id===d.id); return p&&d.prob>p.prob; });
+    title='Deals progressed';
+    sub='Stage moved forward';
+  } else if(type==='lost'){
+    list=weekAgo.filter(d=>!todayIds.has(d.id));
+    title='Deals lost/removed';
+    sub='Closed lost or removed';
+  } else {
+    // all-changes: union of all deals with any change
+    const allIds=new Set([...today.map(d=>d.id),...weekAgo.map(d=>d.id)]);
+    allIds.forEach(id=>{
+      const now=today.find(d=>d.id===id);
+      const prev=weekAgo.find(d=>d.id===id);
+      if(!now||!prev||(now.los!==prev.los||now.prob!==prev.prob)) list.push(now||prev);
+    });
+    title='Total LoS change (WoW)';
+  }
+
+  const fromFmt=_wowWeekAgoKey?new Date(..._wowWeekAgoKey.split('-').map((v,i)=>i===1?v-1:v)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  const toFmt=_wowTodayKey?new Date(..._wowTodayKey.split('-').map((v,i)=>i===1?v-1:v)).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  sub=sub||(fromFmt&&toFmt?fromFmt+' → '+toFmt:'');
+
+  const portalId=cfg().portalId||PORTAL_ID||'';
+  const html=list.length?list.map(item=>{
+    const now=today.find(d=>d.id===item.id);
+    const prev=weekAgo.find(d=>d.id===item.id);
+    const losNow=now?now.los:0, losPrev=prev?prev.los:0;
+    const delta=losNow-losPrev;
+    const color=delta>=0?'#1D9E75':'#E24B4A';
+    const hsUrl=portalId?`https://app.hubspot.com/contacts/${portalId}/record/0-3/${item.id}`:`https://app.hubspot.com/contacts/deals/${item.id}`;
+    const stageChanged=prev&&now&&prev.stageLabel!==now.stageLabel;
+    const stageInfo=stageChanged?`<span style="color:#BA7517">${prev.stageLabel} → ${now.stageLabel}</span>`:`<span>${(now||prev).stageLabel}</span>`;
+    return `<div class="ditem">
+      <div class="dinfo">
+        <a class="dname" href="${hsUrl}" target="_blank" rel="noopener">${item.name} ↗</a>
+        <div class="dmeta"><span>${item.owner}</span><span>·</span>${stageInfo}
+          ${prev&&now&&prev.prob!==now.prob?`<span>·</span><span style="color:#888780">${prev.prob}% → ${now.prob}%</span>`:''}
+        </div>
+      </div>
+      <div class="dright">
+        <div class="damount" style="color:${color}">${delta>=0?'+':''}${fmtFull(delta)}</div>
+        <div class="ddate">${fmtFull(losPrev)} → ${fmtFull(losNow)}</div>
+      </div>
+    </div>`;
+  }).join(''):`<div class="dempty">No deals found</div>`;
+
+  openPane(title, sub+' · '+list.length+' deal'+(list.length!==1?'s':''), html);
 }
 
 function renderWoWTable(elId, rows, todayDeals, weekAgoDeals, dimKey) {
