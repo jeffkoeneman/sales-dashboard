@@ -1269,18 +1269,15 @@ async function applyWoWDates() {
   const fromKey=$('wow-date-from').value;
   const toKey=$('wow-date-to').value;
   if(!fromKey||!toKey){alert('Select both dates');return;}
-  const c=cfg();
-  if(!c.kvUrl||!c.kvToken){alert('Add Upstash credentials in Settings');return;}
   try{
-    const[todayDeals,weekAgoDeals]=await Promise.all([
-      kvGet('snapshot:'+toKey),
-      kvGet('snapshot:'+fromKey)
-    ]);
+    const res=await fetch('/api/history?from='+fromKey+'&to='+toKey);
+    if(!res.ok) throw new Error('history API returned '+res.status);
+    const data=await res.json();
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const tf=(todayDeals||[]).filter(fp);
-    const wf=(weekAgoDeals||[]).filter(fp);
+    const tf=(data.today&&data.today.deals||[]).filter(fp);
+    const wf=(data.weekAgo&&data.weekAgo.deals||[]).filter(fp);
     if(tf.length===0){alert('No snapshot data for '+toKey);return;}
     $('wow-content').style.display='block';
     $('wow-no-data').style.display='none';
