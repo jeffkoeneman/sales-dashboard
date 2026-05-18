@@ -92,7 +92,7 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
 .wow-date-row { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
 .wow-date-wrap { display:flex; align-items:center; gap:6px; }
 .wow-date-lbl { font-size:12px; color:var(--text3); white-space:nowrap; }
-.wow-date-sel { font-size:13px; font-weight:500; color:var(--text); background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--radius); padding:6px 28px 6px 10px; cursor:pointer; outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888780' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; min-width:150px; }
+.wow-date-sel { font-size:13px; font-weight:500; color:var(--text); background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--radius); padding:6px 10px; cursor:pointer; outline:none; color-scheme:dark; min-width:150px; }
 .wow-date-sel:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(127,119,221,.15); }
 .wow-apply-btn { font-size:12px; font-weight:600; color:#fff; background:var(--purple); border:none; border-radius:var(--radius); padding:6px 14px; cursor:pointer; }
 .wow-apply-btn:hover { opacity:.9; }
@@ -1231,69 +1231,36 @@ async function takeSnapshot() {
 }
 
 async function loadHistory() {
-  const c=cfg();
-  if(!c.kvUrl||!c.kvToken){
-    $('wow-no-data').style.display='block';
-    set('wow-dates','Add Upstash credentials in Settings to enable history');
-    return;
-  }
   try {
-    let index=await kvGet('snapshot:index');
-    if(!Array.isArray(index)||index.length===0){
-      const pid=$('sel-pipeline').value;
-      if(pid) index=await kvGet('snapshot:index:'+pid);
-    }
-    const indexArr=Array.isArray(index)?index:[];
-    if(indexArr.length===0){
+    const res = await fetch('/api/history');
+    if(!res.ok) throw new Error('history API returned '+res.status);
+    const data = await res.json();
+    const indexArr = Array.isArray(data.index) ? data.index : [];
+    if(indexArr.length===0 || !data.today){
       $('wow-no-data').style.display='block';
       set('wow-dates','No snapshots yet');
       return;
     }
-    const fmtLbl=k=>{const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
-    const fromSel=$('wow-date-from'),toSel=$('wow-date-to');
-    // Always rebuild dropdowns so new snapshots are always reflected
-    if(fromSel&&toSel){
-      const prevFrom=fromSel.value, prevTo=toSel.value;
-      fromSel.innerHTML=''; toSel.innerHTML='';
-      indexArr.forEach(k=>{
-        const o1=document.createElement('option');o1.value=k;o1.textContent=fmtLbl(k);fromSel.appendChild(o1);
-        const o2=document.createElement('option');o2.value=k;o2.textContent=fmtLbl(k);toSel.appendChild(o2);
-      });
-      // Restore previous selection if still valid, otherwise default will be set below
-      if(prevFrom&&indexArr.includes(prevFrom)) fromSel.value=prevFrom;
-      if(prevTo&&indexArr.includes(prevTo)) toSel.value=prevTo;
-    }
-    const todayKey=indexArr[0];
-    const[ty,tm,td]=todayKey.split('-').map(Number);
-    const weekAgoDate=new Date(ty,tm-1,td-7);
-    const weekAgoStr=weekAgoDate.getFullYear()+'-'+String(weekAgoDate.getMonth()+1).padStart(2,'0')+'-'+String(weekAgoDate.getDate()).padStart(2,'0');
-    const weekAgoKey=indexArr.find(d=>d<=weekAgoStr)||indexArr[indexArr.length-1];
-    if(fromSel) fromSel.value=weekAgoKey;
-    if(toSel) toSel.value=todayKey;
-    set('wow-snap-count',indexArr.length+' snapshots available');
+    const fromSel=$('wow-date-from'), toSel=$('wow-date-to');
+    const oldest=indexArr[indexArr.length-1];
+    const newest=indexArr[0];
+    if(fromSel){ fromSel.min=oldest; fromSel.max=newest; fromSel.value=data.weekAgo.date; }
+    if(toSel){   toSel.min=oldest;   toSel.max=newest;   toSel.value=newest; }
+    set('wow-snap-count', indexArr.length+' snapshots available');
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
-    const[todayDeals,weekAgoDeals]=await Promise.all([
-      kvGet('snapshot:'+todayKey),
-      kvGet('snapshot:'+weekAgoKey)
-    ]);
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const tf=(todayDeals||[]).filter(fp);
-    const wf=(weekAgoDeals||[]).filter(fp);
-    if(tf.length===0){
-      $('wow-no-data').style.display='block';
-      set('wow-dates','No data for selected pipeline');
-      return;
-    }
-    $('wow-no-data').style.display='none';
+    const tf=(data.today.deals||[]).filter(fp);
+    const wf=(data.weekAgo.deals||[]).filter(fp);
+    if(tf.length===0){ $('wow-no-data').style.display='block'; return; }
     $('wow-content').style.display='block';
-    renderWoW(tf,wf,todayKey,weekAgoKey);
+    $('wow-no-data').style.display='none';
+    renderWoW(tf, wf, newest, data.weekAgo.date);
   } catch(e) {
-    set('wow-dates','Error: '+e.message);
     $('wow-no-data').style.display='block';
+    set('wow-dates','Error loading snapshots: '+e.message);
   }
 }
-
 async function applyWoWDates() {
   const fromKey=$('wow-date-from').value;
   const toKey=$('wow-date-to').value;
