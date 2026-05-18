@@ -1,53 +1,66 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  // Allow GET from cron or POST from the dashboard button
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
   const token = process.env.HUBSPOT_TOKEN;
   const kvUrl = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
-
   if (!token || !kvUrl || !kvToken) {
     return res.status(500).json({ error: 'Missing env vars' });
   }
 
+  // Upstash REST helpers
+  const kvGet = async (key) => {
+    const r = await fetch(kvUrl + '/get/' + encodeURIComponent(key), {
+      headers: { Authorization: 'Bearer ' + kvToken }
+    });
+    const d = await r.json();
+    try { return JSON.parse(d.result); } catch(e) { return null; }
+  };
+  const kvSet = async (key, value) => {
+    // Upstash REST: POST /set/key with body = ["SET","key","value"]
+    // Simplest: use the pipeline endpoint or just POST to /set/key with raw string body
+    const r = await fetch(kvUrl + '/set/' + encodeURIComponent(key), {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + kvToken,
+        'Content-Type': 'application/json'
+      },
+      body: value  // value is already a JSON string; Upstash stores it as-is
+    });
+    if (!r.ok) throw new Error('KV write failed: ' + await r.text());
+    return r.json();
+  };
+
   try {
-    // Fetch all pipelines to build stage maps
+    // Fetch all pipelines
     const pipesRes = await fetch('https://api.hubapi.com/crm/v3/pipelines/deals', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const pipesData = await pipesRes.json();
     const pipelines = pipesData.results || [];
-
-    // Build stageId -> probability map (0-100) and stageId -> label map
-    const stageProbMap = {};
-    const stageLabelMap = {};
-    const wonStageIds = new Set();
-    const lostStageIds = new Set();
-
+    const stageProbMap = {}, stageLabelMap = {};
+    const wonStageIds = new Set(), lostStageIds = new Set();
     pipelines.forEach(p => {
-      if (!p.stages) return;
-      p.stages.forEach(s => {
-        const prob = parseFloat(s.metadata && s.metadata.probability);
+      (p.stages || []).forEach(s => {
+        const prob = parseFloat(s.metadata?.probability);
         if (!isNaN(prob)) stageProbMap[s.id] = prob * 100;
         stageLabelMap[s.id] = s.label;
-        const closed = s.metadata && (s.metadata.isClosed === 'true' || s.metadata.isClosed === true);
+        const closed = s.metadata?.isClosed === 'true' || s.metadata?.isClosed === true;
         if (closed && prob === 1) wonStageIds.add(s.id);
         if (closed && prob === 0) lostStageIds.add(s.id);
-        if (s.metadata && s.metadata.stageType === 'WON') wonStageIds.add(s.id);
-        if (s.metadata && s.metadata.stageType === 'LOST') lostStageIds.add(s.id);
+        if (s.metadata?.stageType === 'WON') wonStageIds.add(s.id);
+        if (s.metadata?.stageType === 'LOST') lostStageIds.add(s.id);
       });
     });
 
-    // Fetch all deals
+    // Fetch all deals with company associations
     const props = [
-      'dealname', 'amount', 'dealstage', 'closedate', 'createdate',
-      'hubspot_owner_id', 'pipeline', 'hs_closed_won_date',
-      'agent_firm_type', 'agent_use_case', 'company'
+      'dealname','amount','dealstage','closedate','createdate',
+      'hubspot_owner_id','pipeline','hs_closed_won_date',
+      'agent_firm_type','agent_use_case','hs_all_associated_company_ids'
     ].join(',');
-
     let deals = [], after;
     do {
       const url = 'https://api.hubapi.com/crm/v3/objects/deals?limit=100&properties=' + props + (after ? '&after=' + after : '');
@@ -64,75 +77,72 @@ export default async function handler(req, res) {
     const ownersData = await ownersRes.json();
     const ownerMap = {};
     (ownersData.results || []).forEach(o => {
-      ownerMap[o.id] = (o.firstName || '') + (o.lastName ? ' ' + o.lastName : '') || o.email || o.id;
+      ownerMap[o.id] = ((o.firstName||'') + (o.lastName ? ' '+o.lastName : '')).trim() || o.email || o.id;
     });
 
-    // Build snapshot — one record per open deal
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // Fetch company names for all associated company IDs
+    const allCompanyIds = [...new Set(
+      deals.flatMap(d => (d.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean))
+    )];
+    const companyMap = {};
+    for (let i = 0; i < allCompanyIds.length; i += 10) {
+      const chunk = allCompanyIds.slice(i, i + 10);
+      await Promise.all(chunk.map(async id => {
+        try {
+          const r = await fetch('https://api.hubapi.com/crm/v3/objects/companies/'+id+'?properties=name', {
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const d = await r.json();
+          if (d.properties?.name) companyMap[id] = d.properties.name;
+        } catch(e) {}
+      }));
+    }
+
+    // Build snapshot — open deals only
+    const today = new Date().toISOString().slice(0, 10);
     const snapshot = deals
       .filter(d => !wonStageIds.has(d.properties.dealstage) && !lostStageIds.has(d.properties.dealstage))
       .map(d => {
         const amount = parseFloat(d.properties.amount || 0);
         const prob = stageProbMap[d.properties.dealstage] || 0;
+        const cids = (d.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean);
         return {
           id: d.id,
           name: d.properties.dealname || '',
-          amount,
+          amount, prob,
+          los: amount * prob / 100,
           stage: d.properties.dealstage,
           stageLabel: stageLabelMap[d.properties.dealstage] || d.properties.dealstage,
-          prob,
-          los: amount * prob / 100,
           pipeline: d.properties.pipeline,
           owner: ownerMap[d.properties.hubspot_owner_id] || 'Unassigned',
           ownerId: d.properties.hubspot_owner_id || '',
           firmType: d.properties.agent_firm_type || '',
           useCase: d.properties.agent_use_case || '',
           closeDate: d.properties.closedate || '',
-          company: d.properties.company || ''
+          company: cids.length ? (companyMap[cids[0]] || '') : ''
         };
       });
 
-    // Write to KV — key format: snapshot:YYYY-MM-DD
-    const key = 'snapshot:' + today;
-    const kvRes = await fetch(kvUrl + '/set/' + key, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + kvToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ value: JSON.stringify(snapshot) })
-    });
+    // Write snapshot to KV
+    await kvSet('snapshot:' + today, JSON.stringify(snapshot));
 
-    if (!kvRes.ok) {
-      throw new Error('KV write failed: ' + await kvRes.text());
-    }
-
-    // Also write an index of available snapshot dates
-    const indexRes = await fetch(kvUrl + '/get/snapshot:index', {
-      headers: { Authorization: 'Bearer ' + kvToken }
-    });
-    const indexData = await indexRes.json();
-    let index = [];
-    try { index = JSON.parse(indexData.result || '[]'); } catch(e) {}
+    // Update index
+    let index = await kvGet('snapshot:index') || [];
+    if (!Array.isArray(index)) index = [];
     if (!index.includes(today)) {
-      index.push(today);
-      index.sort().reverse(); // newest first, keep last 90 days
+      index.unshift(today);
+      index.sort().reverse();
       index = index.slice(0, 90);
-      await fetch(kvUrl + '/set/snapshot:index', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + kvToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: JSON.stringify(index) })
-      });
+      await kvSet('snapshot:index', JSON.stringify(index));
     }
 
     return res.status(200).json({
-      success: true,
-      date: today,
+      success: true, date: today,
       dealsSnapshotted: snapshot.length,
-      totalDeals: deals.length
+      totalDeals: deals.length,
+      companiesResolved: Object.keys(companyMap).length
     });
-
-  } catch (e) {
+  } catch(e) {
     return res.status(500).json({ error: e.message });
   }
 }

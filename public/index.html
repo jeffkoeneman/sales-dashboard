@@ -1258,7 +1258,8 @@ async function loadHistory() {
     renderWoW(tf, wf, newest, data.weekAgo.date);
   } catch(e) {
     $('wow-no-data').style.display='block';
-    set('wow-dates','Error loading snapshots: '+e.message);
+    $('wow-no-data').textContent='Error: '+e.message;
+    set('wow-dates','Error: '+e.message);
   }
 }
 async function applyWoWDates() {
