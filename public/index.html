@@ -461,35 +461,40 @@ async function allDeals(){
     'dealname','amount','dealstage','closedate','createdate',
     'hs_deal_stage_probability','hubspot_owner_id','pipeline',
     'hs_closed_won_date','hs_date_entered_closedwon',
-    'agent_firm_type','agent_use_case'
+    'agent_firm_type','agent_use_case',
+    'hs_all_associated_company_ids'
   ].join(',');
   do{
-    const url='/crm/v3/objects/deals?limit=100&properties='+props+'&associations=companies'+(after?'&after='+after:'');
+    const url='/crm/v3/objects/deals?limit=100&properties='+props+(after?'&after='+after:'');
     const data=await proxy(url);
     d=d.concat(data.results||[]);
     after=data.paging?.next?.after;
   }while(after);
 
-  // Collect all associated company IDs then batch-fetch their names
+  // Collect unique company IDs from hs_all_associated_company_ids
   const companyIds=[...new Set(
-    d.flatMap(deal=>deal.associations?.companies?.results?.map(c=>c.id)||[])
+    d.map(deal=>deal.properties.hs_all_associated_company_ids)
+     .filter(Boolean)
+     .flatMap(ids=>ids.split(';'))
   )];
   const companyMap={};
   if(companyIds.length){
-    // HubSpot batch read: up to 100 at a time
-    for(let i=0;i<companyIds.length;i+=100){
-      const batch=companyIds.slice(i,i+100);
-      const bRes=await proxy('/crm/v3/objects/companies/batch/read',{
-        method:'POST',
-        body:JSON.stringify({properties:['name'],inputs:batch.map(id=>({id}))})
-      });
-      (bRes.results||[]).forEach(c=>{companyMap[c.id]=c.properties?.name||'';});
+    // Fetch companies in parallel batches of 10
+    const chunks=[];
+    for(let i=0;i<companyIds.length;i+=10) chunks.push(companyIds.slice(i,i+10));
+    for(const chunk of chunks){
+      await Promise.all(chunk.map(async id=>{
+        try{
+          const r=await proxy('/crm/v3/objects/companies/'+id+'?properties=name');
+          if(r.properties?.name) companyMap[id]=r.properties.name;
+        }catch(e){}
+      }));
     }
   }
   // Attach company name to each deal
   d.forEach(deal=>{
-    const cid=deal.associations?.companies?.results?.[0]?.id;
-    deal.properties.company=cid?companyMap[cid]||'':'';
+    const ids=(deal.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean);
+    deal.properties.company=ids.length?companyMap[ids[0]]||'':'';
   });
   return d;
 }
