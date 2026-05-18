@@ -5,40 +5,34 @@ export default async function handler(req, res) {
 
   const kvUrl = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
-  if (!kvUrl || !kvToken) {
-    return res.status(500).json({ error: 'KV not configured' });
-  }
+  if (!kvUrl || !kvToken) return res.status(500).json({ error: 'KV not configured' });
 
   const kvGet = async (key) => {
     const r = await fetch(kvUrl + '/get/' + encodeURIComponent(key), {
       headers: { Authorization: 'Bearer ' + kvToken }
     });
     const d = await r.json();
-    try { return JSON.parse(d.result || 'null'); } catch(e) { return null; }
+    if (!d.result) return null;
+    // Result may be a JSON string or already parsed - handle both
+    if (typeof d.result === 'string') {
+      try { return JSON.parse(d.result); } catch(e) { return null; }
+    }
+    return d.result;
   };
 
   try {
-    // Get index of available snapshots
     let index = await kvGet('snapshot:index');
     if (!Array.isArray(index) || index.length === 0) {
       return res.status(200).json({ today: null, weekAgo: null, index: [] });
     }
 
-    // Support custom from/to date range via query params
     const { from, to } = req.query;
 
-    let todayKey, weekAgoKey;
-
-    if (to && index.includes(to)) {
-      todayKey = to;
-    } else {
-      todayKey = index[0]; // most recent
-    }
-
+    let todayKey = (to && index.includes(to)) ? to : index[0];
+    let weekAgoKey;
     if (from && index.includes(from)) {
       weekAgoKey = from;
     } else {
-      // Default: find snapshot closest to 7 days before todayKey
       const [ty, tm, td] = todayKey.split('-').map(Number);
       const weekAgoDate = new Date(ty, tm - 1, td - 7);
       const weekAgoStr = weekAgoDate.getFullYear() + '-' +
@@ -52,9 +46,12 @@ export default async function handler(req, res) {
       kvGet('snapshot:' + weekAgoKey)
     ]);
 
+    // Ensure deals are always arrays
+    const ensureArray = v => Array.isArray(v) ? v : [];
+
     return res.status(200).json({
-      today:   { date: todayKey,   deals: todaySnap   || [] },
-      weekAgo: { date: weekAgoKey, deals: weekAgoSnap || [] },
+      today:   { date: todayKey,   deals: ensureArray(todaySnap)   },
+      weekAgo: { date: weekAgoKey, deals: ensureArray(weekAgoSnap) },
       index
     });
   } catch (e) {

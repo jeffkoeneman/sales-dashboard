@@ -470,42 +470,27 @@ async function allDeals(){
     after=data.paging?.next?.after;
   }while(after);
 
-  // Fetch company associations for all deals in one batch call
-  // HubSpot associations batch: POST /crm/v4/associations/deals/companies/batch/read
+  // Fetch company associations using CRM search — most reliable approach
+  // Get all deals that have associated companies via the associations API (GET, no POST needed)
   try{
-    const dealIds=d.map(x=>x.id);
     const companyMap={};
-    // Process in chunks of 100 (HubSpot batch limit)
-    for(let i=0;i<dealIds.length;i+=100){
-      const chunk=dealIds.slice(i,i+100);
-      const assocRes=await fetch('/api/hubspot?path='+encodeURIComponent('crm/v4/associations/deals/companies/batch/read'),{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({inputs:chunk.map(id=>({id}))})
-      });
-      if(assocRes.ok){
-        const assocData=await assocRes.json();
-        // Map dealId -> first company id
-        const dealToCompany={};
-        (assocData.results||[]).forEach(r=>{
-          if(r.to&&r.to.length) dealToCompany[r.from.id]=r.to[0].toObjectId;
-        });
-        // Fetch unique company names
-        const cids=[...new Set(Object.values(dealToCompany))];
-        const cNameMap={};
-        await Promise.all(cids.map(async cid=>{
-          try{
-            const cr=await proxy('/crm/v3/objects/companies/'+cid+'?properties=name');
-            if(cr.properties?.name) cNameMap[cid]=cr.properties.name;
-          }catch(e){}
-        }));
-        // Attach to deals
-        d.forEach(deal=>{
-          const cid=dealToCompany[deal.id];
-          if(cid) deal.properties.company=cNameMap[cid]||'';
-          else deal.properties.company=deal.properties.company||'';
-        });
-      }
+    // Fetch associations in parallel batches of 20 deals at a time
+    const batchSize=20;
+    for(let i=0;i<d.length;i+=batchSize){
+      const chunk=d.slice(i,i+batchSize);
+      await Promise.all(chunk.map(async deal=>{
+        try{
+          const r=await proxy('crm/v3/objects/deals/'+deal.id+'/associations/companies');
+          const cid=r.results?.[0]?.id;
+          if(cid){
+            if(!companyMap[cid]){
+              const cr=await proxy('crm/v3/objects/companies/'+cid+'?properties=name');
+              companyMap[cid]=cr.properties?.name||'';
+            }
+            deal.properties.company=companyMap[cid];
+          }
+        }catch(e){}
+      }));
     }
   }catch(e){
     console.warn('Company lookup failed:',e);
@@ -1268,8 +1253,13 @@ async function loadHistory() {
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const tf=(data.today.deals||[]).filter(fp);
-    const wf=(data.weekAgo.deals||[]).filter(fp);
+    const parseDeals=d=>{
+      if(!d) return [];
+      if(Array.isArray(d)) return d;
+      try{ const p=JSON.parse(d); return Array.isArray(p)?p:[]; }catch(e){ return []; }
+    };
+    const tf=parseDeals(data.today.deals).filter(fp);
+    const wf=parseDeals(data.weekAgo.deals).filter(fp);
     if(tf.length===0){ $('wow-no-data').style.display='block'; return; }
     $('wow-content').style.display='block';
     $('wow-no-data').style.display='none';
@@ -1292,8 +1282,13 @@ async function applyWoWDates() {
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const tf=(data.today.deals||[]).filter(fp);
-    const wf=(data.weekAgo&&data.weekAgo.deals||[]).filter(fp);
+    const parseDeals2=d=>{
+      if(!d) return [];
+      if(Array.isArray(d)) return d;
+      try{ const p=JSON.parse(d); return Array.isArray(p)?p:[]; }catch(e){ return []; }
+    };
+    const tf=parseDeals2(data.today&&data.today.deals).filter(fp);
+    const wf=parseDeals2(data.weekAgo&&data.weekAgo.deals).filter(fp);
     if(tf.length===0){alert('No snapshot data for '+toKey);return;}
     $('wow-content').style.display='block';
     $('wow-no-data').style.display='none';
