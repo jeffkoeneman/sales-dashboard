@@ -1242,10 +1242,14 @@ async function loadHistory() {
       return;
     }
     const fromSel=$('wow-date-from'), toSel=$('wow-date-to');
-    const oldest=indexArr[indexArr.length-1];
-    const newest=indexArr[0];
+    const oldest=indexArr[indexArr.length-1]; // e.g. 2026-04-12
+    const newest=indexArr[0];                 // today's snapshot
+    // To: must have at least 7 days of history behind it, so min = oldest + 7 days
+    const oldestDate=new Date(oldest+'T12:00:00');
+    oldestDate.setDate(oldestDate.getDate()+7);
+    const toMin=oldestDate.toISOString().slice(0,10);
     if(fromSel){ fromSel.min=oldest; fromSel.max=newest; fromSel.value=data.weekAgo.date; }
-    if(toSel){   toSel.min=oldest;   toSel.max=newest;   toSel.value=newest; }
+    if(toSel){   toSel.min=toMin;    toSel.max=newest;   toSel.value=newest; }
     set('wow-snap-count', indexArr.length+' snapshots available');
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
