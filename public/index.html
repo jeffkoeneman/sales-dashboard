@@ -340,8 +340,8 @@ body { font-family: var(--font); background: var(--bg3); color: var(--text); min
         </div>
         <div id="wow-content" style="display:none">
           <div class="wow-date-row">
-            <div class="wow-date-wrap"><span class="wow-date-lbl">From</span><select class="wow-date-sel" id="wow-date-from"></select></div>
-            <div class="wow-date-wrap"><span class="wow-date-lbl">To</span><select class="wow-date-sel" id="wow-date-to"></select></div>
+            <div class="wow-date-wrap"><span class="wow-date-lbl">From</span><input type="date" class="wow-date-sel" id="wow-date-from" onchange="applyWoWDates()"></div>
+            <div class="wow-date-wrap"><span class="wow-date-lbl">To</span><input type="date" class="wow-date-sel" id="wow-date-to" onchange="applyWoWDates()"></div>
             <button class="wow-apply-btn" onclick="applyWoWDates()">Apply</button>
             <span id="wow-snap-count" style="font-size:12px;color:var(--text3)"></span>
             <div class="wow-checkbox-wrap">
@@ -447,8 +447,10 @@ function cfg(){
   catch(e){return{...DEF};}
 }
 
-async function proxy(path){
-  const r=await fetch('/api/hubspot?path='+encodeURIComponent(path));
+async function proxy(path, opts={}){
+  const fetchOpts={method:opts.method||'GET',headers:{'Content-Type':'application/json'}};
+  if(opts.body) fetchOpts.body=opts.body;
+  const r=await fetch('/api/hubspot?path='+encodeURIComponent(path),fetchOpts);
   if(!r.ok) throw new Error('API '+r.status+': '+await r.text());
   return r.json();
 }
@@ -459,14 +461,36 @@ async function allDeals(){
     'dealname','amount','dealstage','closedate','createdate',
     'hs_deal_stage_probability','hubspot_owner_id','pipeline',
     'hs_closed_won_date','hs_date_entered_closedwon',
-    'agent_firm_type','agent_use_case','company'
+    'agent_firm_type','agent_use_case'
   ].join(',');
   do{
-    const url='/crm/v3/objects/deals?limit=100&properties='+props+(after?'&after='+after:'');
+    const url='/crm/v3/objects/deals?limit=100&properties='+props+'&associations=companies'+(after?'&after='+after:'');
     const data=await proxy(url);
     d=d.concat(data.results||[]);
     after=data.paging?.next?.after;
   }while(after);
+
+  // Collect all associated company IDs then batch-fetch their names
+  const companyIds=[...new Set(
+    d.flatMap(deal=>deal.associations?.companies?.results?.map(c=>c.id)||[])
+  )];
+  const companyMap={};
+  if(companyIds.length){
+    // HubSpot batch read: up to 100 at a time
+    for(let i=0;i<companyIds.length;i+=100){
+      const batch=companyIds.slice(i,i+100);
+      const bRes=await proxy('/crm/v3/objects/companies/batch/read',{
+        method:'POST',
+        body:JSON.stringify({properties:['name'],inputs:batch.map(id=>({id}))})
+      });
+      (bRes.results||[]).forEach(c=>{companyMap[c.id]=c.properties?.name||'';});
+    }
+  }
+  // Attach company name to each deal
+  d.forEach(deal=>{
+    const cid=deal.associations?.companies?.results?.[0]?.id;
+    deal.properties.company=cid?companyMap[cid]||'':'';
+  });
   return d;
 }
 
@@ -1268,20 +1292,22 @@ async function loadHistory() {
 async function applyWoWDates() {
   const fromKey=$('wow-date-from').value;
   const toKey=$('wow-date-to').value;
-  if(!fromKey||!toKey){alert('Select both dates');return;}
+  if(!fromKey||!toKey) return;
   try{
     const res=await fetch('/api/history?from='+fromKey+'&to='+toKey);
     if(!res.ok) throw new Error('history API returned '+res.status);
     const data=await res.json();
+    if(!data.today){alert('No snapshot data available for selected range');return;}
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
-    const tf=(data.today&&data.today.deals||[]).filter(fp);
+    const tf=(data.today.deals||[]).filter(fp);
     const wf=(data.weekAgo&&data.weekAgo.deals||[]).filter(fp);
     if(tf.length===0){alert('No snapshot data for '+toKey);return;}
     $('wow-content').style.display='block';
     $('wow-no-data').style.display='none';
-    renderWoW(tf,wf,toKey,fromKey);
+    // Use actual dates returned by API (nearest available snapshot)
+    renderWoW(tf,wf,data.today.date,data.weekAgo.date);
   }catch(e){alert('Error: '+e.message);}
 }
 function renderWoW(today, weekAgo, todayKey, weekAgoKey) {
