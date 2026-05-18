@@ -470,31 +470,8 @@ async function allDeals(){
     after=data.paging?.next?.after;
   }while(after);
 
-  // Fetch company associations using CRM search — most reliable approach
-  // Get all deals that have associated companies via the associations API (GET, no POST needed)
-  try{
-    const companyMap={};
-    // Fetch associations in parallel batches of 20 deals at a time
-    const batchSize=20;
-    for(let i=0;i<d.length;i+=batchSize){
-      const chunk=d.slice(i,i+batchSize);
-      await Promise.all(chunk.map(async deal=>{
-        try{
-          const r=await proxy('crm/v3/objects/deals/'+deal.id+'/associations/companies');
-          const cid=r.results?.[0]?.id;
-          if(cid){
-            if(!companyMap[cid]){
-              const cr=await proxy('crm/v3/objects/companies/'+cid+'?properties=name');
-              companyMap[cid]=cr.properties?.name||'';
-            }
-            deal.properties.company=companyMap[cid];
-          }
-        }catch(e){}
-      }));
-    }
-  }catch(e){
-    console.warn('Company lookup failed:',e);
-  }
+  // Company names are resolved server-side during nightly snapshot
+  // No client-side lookup needed - company field comes from deal properties
   return d;
 }
 
@@ -1244,11 +1221,9 @@ async function loadHistory() {
     const oldest=indexArr[indexArr.length-1]; // e.g. 2026-04-12
     const newest=indexArr[0];                 // today's snapshot
     // To: must have at least 7 days of history behind it, so min = oldest + 7 days
-    const oldestDate=new Date(oldest+'T12:00:00');
-    oldestDate.setDate(oldestDate.getDate()+7);
-    const toMin=oldestDate.toISOString().slice(0,10);
+    // Any two valid snapshot dates can be compared - no minimum window
     if(fromSel){ fromSel.min=oldest; fromSel.max=newest; fromSel.value=data.weekAgo.date; }
-    if(toSel){   toSel.min=toMin;    toSel.max=newest;   toSel.value=newest; }
+    if(toSel){   toSel.min=oldest;   toSel.max=newest;   toSel.value=newest; }
     set('wow-snap-count', indexArr.length+' snapshots available');
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
@@ -1278,7 +1253,12 @@ async function applyWoWDates() {
     const res=await fetch('/api/history?from='+fromKey+'&to='+toKey);
     if(!res.ok) throw new Error('history API returned '+res.status);
     const data=await res.json();
-    if(!data.today){alert('No snapshot data available for selected range');return;}
+    if(!data.today){
+      // No exact match - show what dates are available
+      const avail=(data.index||[]).slice(0,5).join(', ');
+      alert('No snapshot data for selected dates. Available dates include: '+avail);
+      return;
+    }
     const pid=$('sel-pipeline').value;
     const excludeLow=$('wow-exclude-low')&&$('wow-exclude-low').checked;
     const fp=d=>(!pid||d.pipeline===pid)&&(!excludeLow||d.prob>=15);
