@@ -461,8 +461,7 @@ async function allDeals(){
     'dealname','amount','dealstage','closedate','createdate',
     'hs_deal_stage_probability','hubspot_owner_id','pipeline',
     'hs_closed_won_date','hs_date_entered_closedwon',
-    'agent_firm_type','agent_use_case',
-    'hs_all_associated_company_ids'
+    'agent_firm_type','agent_use_case'
   ].join(',');
   do{
     const url='/crm/v3/objects/deals?limit=100&properties='+props+(after?'&after='+after:'');
@@ -471,31 +470,46 @@ async function allDeals(){
     after=data.paging?.next?.after;
   }while(after);
 
-  // Collect unique company IDs from hs_all_associated_company_ids
-  const companyIds=[...new Set(
-    d.map(deal=>deal.properties.hs_all_associated_company_ids)
-     .filter(Boolean)
-     .flatMap(ids=>ids.split(';'))
-  )];
-  const companyMap={};
-  if(companyIds.length){
-    // Fetch companies in parallel batches of 10
-    const chunks=[];
-    for(let i=0;i<companyIds.length;i+=10) chunks.push(companyIds.slice(i,i+10));
-    for(const chunk of chunks){
-      await Promise.all(chunk.map(async id=>{
-        try{
-          const r=await proxy('/crm/v3/objects/companies/'+id+'?properties=name');
-          if(r.properties?.name) companyMap[id]=r.properties.name;
-        }catch(e){}
-      }));
+  // Fetch company associations for all deals in one batch call
+  // HubSpot associations batch: POST /crm/v4/associations/deals/companies/batch/read
+  try{
+    const dealIds=d.map(x=>x.id);
+    const companyMap={};
+    // Process in chunks of 100 (HubSpot batch limit)
+    for(let i=0;i<dealIds.length;i+=100){
+      const chunk=dealIds.slice(i,i+100);
+      const assocRes=await fetch('/api/hubspot?path='+encodeURIComponent('crm/v4/associations/deals/companies/batch/read'),{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({inputs:chunk.map(id=>({id}))})
+      });
+      if(assocRes.ok){
+        const assocData=await assocRes.json();
+        // Map dealId -> first company id
+        const dealToCompany={};
+        (assocData.results||[]).forEach(r=>{
+          if(r.to&&r.to.length) dealToCompany[r.from.id]=r.to[0].toObjectId;
+        });
+        // Fetch unique company names
+        const cids=[...new Set(Object.values(dealToCompany))];
+        const cNameMap={};
+        await Promise.all(cids.map(async cid=>{
+          try{
+            const cr=await proxy('/crm/v3/objects/companies/'+cid+'?properties=name');
+            if(cr.properties?.name) cNameMap[cid]=cr.properties.name;
+          }catch(e){}
+        }));
+        // Attach to deals
+        d.forEach(deal=>{
+          const cid=dealToCompany[deal.id];
+          if(cid) deal.properties.company=cNameMap[cid]||'';
+          else deal.properties.company=deal.properties.company||'';
+        });
+      }
     }
+  }catch(e){
+    console.warn('Company lookup failed:',e);
   }
-  // Attach company name to each deal
-  d.forEach(deal=>{
-    const ids=(deal.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean);
-    deal.properties.company=ids.length?companyMap[ids[0]]||'':'';
-  });
   return d;
 }
 
