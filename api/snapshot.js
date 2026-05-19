@@ -105,7 +105,7 @@ export default async function handler(req, res) {
           const data2 = await r2.json();
           (data2.results || []).forEach(result => {
             if (result.to && result.to.length > 0) {
-              dealToCompany[result.from.id] = result.to[0].toObjectId;
+              dealToCompany[result.from.id] = String(result.to[0].toObjectId);
               assocDebug.resultCount++;
             }
           });
