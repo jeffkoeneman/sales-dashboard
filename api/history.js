@@ -14,21 +14,26 @@ export default async function handler(req, res) {
     const d = await r.json();
     if (!d.result) return null;
     if (typeof d.result === 'string') {
-      try { return JSON.parse(d.result); } catch(e) { return null; }
+      try {
+        const parsed = JSON.parse(d.result);
+        // Handle double-encoded JSON (string inside string)
+        if (typeof parsed === 'string') {
+          try { return JSON.parse(parsed); } catch(e) { return parsed; }
+        }
+        return parsed;
+      } catch(e) { return null; }
     }
     return d.result;
   };
 
   try {
-    // Use snapshot:index directly - snapshot.js maintains it with only valid dates
     let index = await kvGet('snapshot:index');
     if (!Array.isArray(index) || index.length === 0) {
-      return res.status(200).json({ today: null, weekAgo: null, index: [] });
+      return res.status(200).json({ today: null, weekAgo: null, index: [], debug: { raw: String(index) } });
     }
 
     const { from, to } = req.query;
 
-    // Find nearest snapshot on or before requested date
     const nearest = (requested, idx) => {
       if (!requested) return null;
       if (idx.includes(requested)) return requested;
