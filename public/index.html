@@ -470,8 +470,42 @@ async function allDeals(){
     after=data.paging?.next?.after;
   }while(after);
 
-  // Company names are resolved server-side during nightly snapshot
-  // No client-side lookup needed - company field comes from deal properties
+  // Fetch company associations and names via batch APIs
+  try {
+    const dealToCompany = {};
+    for (let i = 0; i < d.length; i += 100) {
+      const chunk = d.slice(i, i + 100);
+      const r = await fetch('/api/hubspot?path=' + encodeURIComponent('crm/v4/associations/deals/companies/batch/read'), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ inputs: chunk.map(x => ({ id: x.id })) })
+      });
+      if (r.ok) {
+        const data = await r.json();
+        (data.results || []).forEach(res => {
+          if (res.to && res.to.length > 0) dealToCompany[res.from.id] = String(res.to[0].toObjectId);
+        });
+      }
+    }
+    const uniqueCids = [...new Set(Object.values(dealToCompany))];
+    const companyMap = {};
+    for (let i = 0; i < uniqueCids.length; i += 100) {
+      const chunk = uniqueCids.slice(i, i + 100);
+      const r = await fetch('/api/hubspot?path=' + encodeURIComponent('crm/v3/objects/companies/batch/read'), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ properties: ['name'], inputs: chunk.map(id => ({ id })) })
+      });
+      if (r.ok) {
+        const data = await r.json();
+        (data.results || []).forEach(c => { if (c.id && c.properties?.name) companyMap[c.id] = c.properties.name; });
+      }
+    }
+    d.forEach(deal => {
+      const cid = dealToCompany[deal.id];
+      deal.properties.company = cid ? (companyMap[cid] || '') : '';
+    });
+  } catch(e) { console.warn('Company lookup failed:', e); }
   return d;
 }
 
@@ -1222,7 +1256,7 @@ async function loadHistory() {
     const newest=indexArr[0];                 // today's snapshot
     // To: must have at least 7 days of history behind it, so min = oldest + 7 days
     // Any two valid snapshot dates can be compared - no minimum window
-    if(fromSel){ fromSel.min=oldest; fromSel.max=newest; fromSel.value=data.weekAgo.date; }
+    if(fromSel){ fromSel.min=oldest; fromSel.max=newest; fromSel.value=data.weekAgo&&data.weekAgo.date||oldest; }
     if(toSel){   toSel.min=oldest;   toSel.max=newest;   toSel.value=newest; }
     set('wow-snap-count', indexArr.length+' snapshots available');
     const pid=$('sel-pipeline').value;
@@ -1235,7 +1269,7 @@ async function loadHistory() {
     };
     const tf=parseDeals(data.today.deals).filter(fp);
     const wf=parseDeals(data.weekAgo.deals).filter(fp);
-    if(tf.length===0){ $('wow-no-data').style.display='block'; return; }
+    if(tf.length===0){ $('wow-no-data').style.display='block'; set('wow-dates','No deal data found'); return; }
     $('wow-content').style.display='block';
     $('wow-no-data').style.display='none';
     renderWoW(tf, wf, newest, data.weekAgo.date);
