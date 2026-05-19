@@ -55,11 +55,11 @@ export default async function handler(req, res) {
       });
     });
 
-    // Fetch all deals with company associations
+    // Fetch all deals
     const props = [
       'dealname','amount','dealstage','closedate','createdate',
       'hubspot_owner_id','pipeline','hs_closed_won_date',
-      'agent_firm_type','agent_use_case','hs_all_associated_company_ids'
+      'agent_firm_type','agent_use_case'
     ].join(',');
     let deals = [], after;
     do {
@@ -80,20 +80,38 @@ export default async function handler(req, res) {
       ownerMap[o.id] = ((o.firstName||'') + (o.lastName ? ' '+o.lastName : '')).trim() || o.email || o.id;
     });
 
-    // Fetch company names for all associated company IDs
-    const allCompanyIds = [...new Set(
-      deals.flatMap(d => (d.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean))
-    )];
+    // Fetch company associations via batch API
+    // POST /crm/v4/associations/deals/companies/batch/read
+    const dealToCompany = {};
+    for (let i = 0; i < deals.length; i += 100) {
+      const chunk = deals.slice(i, i + 100);
+      try {
+        const r = await fetch('https://api.hubapi.com/crm/v4/associations/deals/companies/batch/read', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inputs: chunk.map(d => ({ id: d.id })) })
+        });
+        const data = await r.json();
+        (data.results || []).forEach(result => {
+          if (result.to && result.to.length > 0) {
+            dealToCompany[result.from.id] = result.to[0].toObjectId;
+          }
+        });
+      } catch(e) {}
+    }
+
+    // Fetch unique company names
     const companyMap = {};
-    for (let i = 0; i < allCompanyIds.length; i += 10) {
-      const chunk = allCompanyIds.slice(i, i + 10);
-      await Promise.all(chunk.map(async id => {
+    const uniqueCompanyIds = [...new Set(Object.values(dealToCompany))];
+    for (let i = 0; i < uniqueCompanyIds.length; i += 50) {
+      const chunk = uniqueCompanyIds.slice(i, i + 50);
+      await Promise.all(chunk.map(async cid => {
         try {
-          const r = await fetch('https://api.hubapi.com/crm/v3/objects/companies/'+id+'?properties=name', {
+          const r = await fetch('https://api.hubapi.com/crm/v3/objects/companies/' + cid + '?properties=name', {
             headers: { Authorization: 'Bearer ' + token }
           });
           const d = await r.json();
-          if (d.properties?.name) companyMap[id] = d.properties.name;
+          if (d.properties?.name) companyMap[cid] = d.properties.name;
         } catch(e) {}
       }));
     }
@@ -105,7 +123,7 @@ export default async function handler(req, res) {
       .map(d => {
         const amount = parseFloat(d.properties.amount || 0);
         const prob = stageProbMap[d.properties.dealstage] || 0;
-        const cids = (d.properties.hs_all_associated_company_ids||'').split(';').filter(Boolean);
+        const cid = dealToCompany[d.id];
         return {
           id: d.id,
           name: d.properties.dealname || '',
@@ -119,21 +137,25 @@ export default async function handler(req, res) {
           firmType: d.properties.agent_firm_type || '',
           useCase: d.properties.agent_use_case || '',
           closeDate: d.properties.closedate || '',
-          company: cids.length ? (companyMap[cids[0]] || '') : ''
+          company: cid ? (companyMap[cid] || '') : ''
         };
       });
 
     // Write snapshot to KV
     await kvSet('snapshot:' + today, JSON.stringify(snapshot));
 
-    // Update index
-    let index = await kvGet('snapshot:index') || [];
-    if (!Array.isArray(index)) index = [];
-    if (!index.includes(today)) {
-      index.unshift(today);
-      index.sort().reverse();
-      index = index.slice(0, 90);
-      await kvSet('snapshot:index', JSON.stringify(index));
+    // Only add to index if we actually have deal data
+    if (snapshot.length > 0) {
+      let index = await kvGet('snapshot:index') || [];
+      if (!Array.isArray(index)) index = [];
+      // Remove any dates that are broken (keep only dates with valid data)
+      // We trust today's entry since we just wrote it successfully
+      if (!index.includes(today)) {
+        index.unshift(today);
+        index.sort().reverse();
+        index = index.slice(0, 90);
+        await kvSet('snapshot:index', JSON.stringify(index));
+      }
     }
 
     return res.status(200).json({
