@@ -113,20 +113,38 @@ export default async function handler(req, res) {
       }
     } catch(e) { assocDebug.error = e.message; }
 
-    // Fetch unique company names
+    // Fetch unique company names via batch read (single API call)
     const companyMap = {};
     const uniqueCompanyIds = [...new Set(Object.values(dealToCompany))];
-    for (let i = 0; i < uniqueCompanyIds.length; i += 50) {
-      const chunk = uniqueCompanyIds.slice(i, i + 50);
-      await Promise.all(chunk.map(async cid => {
-        try {
-          const r = await fetch('https://api.hubapi.com/crm/v3/objects/companies/' + cid + '?properties=name', {
-            headers: { Authorization: 'Bearer ' + token }
-          });
-          const d = await r.json();
-          if (d.properties?.name) companyMap[cid] = d.properties.name;
-        } catch(e) {}
-      }));
+    let companyDebug = { uniqueIds: uniqueCompanyIds.length, batchStatus: null, batchSample: null, batchError: null };
+    if (uniqueCompanyIds.length > 0) {
+      // Test first batch only to debug
+      const firstChunk = uniqueCompanyIds.slice(0, 10);
+      try {
+        const r = await fetch('https://api.hubapi.com/crm/v3/objects/companies/batch/read', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ properties: ['name'], inputs: firstChunk.map(id => ({ id })) })
+        });
+        companyDebug.batchStatus = r.status;
+        const d = await r.json();
+        companyDebug.batchSample = JSON.stringify(d).slice(0, 400);
+        if (r.ok) {
+          // Full run
+          for (let i = 0; i < uniqueCompanyIds.length; i += 100) {
+            const chunk = uniqueCompanyIds.slice(i, i + 100);
+            const r2 = await fetch('https://api.hubapi.com/crm/v3/objects/companies/batch/read', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ properties: ['name'], inputs: chunk.map(id => ({ id })) })
+            });
+            const d2 = await r2.json();
+            (d2.results || []).forEach(c => {
+              if (c.id && c.properties?.name) companyMap[c.id] = c.properties.name;
+            });
+          }
+        }
+      } catch(e) { companyDebug.batchError = e.message; }
     }
 
     // Build snapshot — open deals only
@@ -176,7 +194,8 @@ export default async function handler(req, res) {
       dealsSnapshotted: snapshot.length,
       totalDeals: deals.length,
       companiesResolved: Object.keys(companyMap).length,
-      assocDebug
+      assocDebug,
+      companyDebug
     });
   } catch(e) {
     return res.status(500).json({ error: e.message });
